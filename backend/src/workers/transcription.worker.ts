@@ -4,8 +4,6 @@ import { transcribeAudio } from '../services/whisper.service.js';
 import { getSignedDownloadUrl } from '../services/storage.service.js';
 import { reportQueue, connection, defaultJobOptions, QUEUE_NAMES } from './queue.js';
 import { logger } from '../utils/logger.js';
-import fetch from 'node-fetch';
-
 export interface TranscriptionJobData {
   entryId: string;
   audioFileKey: string;

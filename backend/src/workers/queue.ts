@@ -1,10 +1,21 @@
-import { Queue, Worker, Job, QueueEvents } from 'bullmq';
-import IORedis from 'ioredis';
-import { logger } from '../utils/logger.js';
+import { Queue } from 'bullmq';
 
-const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
-  maxRetriesPerRequest: null,
-});
+function redisConnection() {
+  const url = process.env.REDIS_URL || 'redis://localhost:6379';
+  try {
+    const parsed = new URL(url);
+    return {
+      host: parsed.hostname,
+      port: parseInt(parsed.port || '6379', 10),
+      password: parsed.password || undefined,
+      maxRetriesPerRequest: null as null,
+    };
+  } catch {
+    return { host: 'localhost', port: 6379, maxRetriesPerRequest: null as null };
+  }
+}
+
+export const connection = redisConnection();
 
 // Queue names
 export const QUEUE_NAMES = {
@@ -26,5 +37,3 @@ export const defaultJobOptions = {
   removeOnComplete: 100,
   removeOnFail: 200,
 };
-
-export { connection };
