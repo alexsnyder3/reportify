@@ -1,0 +1,390 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ORGANIZATIONS
+// ─────────────────────────────────────────────
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  users       User[]
+  invitations Invitation[]
+  jobs        Job[]
+  entries     Entry[]
+  photos      Photo[]
+  reports     Report[]
+  auditLogs   AuditLog[]
+
+  @@map("organizations")
+}
+
+// ─────────────────────────────────────────────
+// USERS
+// ─────────────────────────────────────────────
+model User {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  email          String   @unique
+  passwordHash   String   @map("password_hash")
+  firstName      String   @map("first_name")
+  lastName       String   @map("last_name")
+  role           UserRole @default(SUPERVISOR)
+  isActive       Boolean  @default(true) @map("is_active")
+  lastLoginAt    DateTime? @map("last_login_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  entries      Entry[]
+  photos       Photo[]
+  reports      Report[]
+  auditLogs    AuditLog[]
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  SUPERVISOR
+}
+
+// ─────────────────────────────────────────────
+// INVITATIONS
+// ─────────────────────────────────────────────
+model Invitation {
+  id             String           @id @default(uuid())
+  organizationId String           @map("organization_id")
+  email          String
+  role           UserRole         @default(SUPERVISOR)
+  token          String           @unique
+  status         InvitationStatus @default(PENDING)
+  expiresAt      DateTime         @map("expires_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([token])
+  @@map("invitations")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+// ─────────────────────────────────────────────
+// JOBS
+// ─────────────────────────────────────────────
+model Job {
+  id             String  @id @default(uuid())
+  organizationId String  @map("organization_id")
+  name           String
+  address        String?
+  latitude       Float?
+  longitude      Float?
+  radiusMeters   Float   @default(200) @map("radius_meters")
+  isActive       Boolean @default(true) @map("is_active")
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  entries      Entry[]
+  photos       Photo[]
+  reports      Report[]
+
+  @@index([organizationId])
+  @@map("jobs")
+}
+
+// ─────────────────────────────────────────────
+// ENTRIES (voice recordings)
+// ─────────────────────────────────────────────
+model Entry {
+  id               String        @id @default(uuid())
+  organizationId   String        @map("organization_id")
+  userId           String        @map("user_id")
+  jobId            String?       @map("job_id")
+  deviceEntryId    String?       @map("device_entry_id") // local ID from Android
+  audioFileKey     String?       @map("audio_file_key")  // S3/MinIO key
+  audioFileSizeBytes Int?        @map("audio_file_size_bytes")
+  durationSeconds  Float?        @map("duration_seconds")
+  latitude         Float?
+  longitude        Float?
+  gpsAccuracy      Float?        @map("gps_accuracy")
+  jobDetectedId    String?       @map("job_detected_id")
+  jobConfidence    Float?        @map("job_confidence")
+  status           EntryStatus   @default(UPLOADED)
+  deviceMeta       Json?         @map("device_meta")
+  recordedAt       DateTime      @map("recorded_at")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  deletedAt        DateTime?     @map("deleted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+  job          Job?         @relation(fields: [jobId], references: [id])
+  transcript   Transcript?
+  photos       EntryPhoto[]
+  reports      ReportEntry[]
+  syncEvents   SyncEvent[]
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([jobId])
+  @@map("entries")
+}
+
+enum EntryStatus {
+  UPLOADED
+  PROCESSING
+  TRANSCRIBED
+  REPORT_GENERATED
+  FAILED
+}
+
+// ─────────────────────────────────────────────
+// PHOTOS
+// ─────────────────────────────────────────────
+model Photo {
+  id               String  @id @default(uuid())
+  organizationId   String  @map("organization_id")
+  userId           String  @map("user_id")
+  jobId            String? @map("job_id")
+  devicePhotoId    String? @map("device_photo_id")
+  fileKey          String? @map("file_key")
+  thumbnailKey     String? @map("thumbnail_key")
+  fileSizeBytes    Int?    @map("file_size_bytes")
+  mimeType         String? @map("mime_type")
+  latitude         Float?
+  longitude        Float?
+  gpsAccuracy      Float?  @map("gps_accuracy")
+  status           PhotoStatus @default(UPLOADED)
+  deviceMeta       Json?   @map("device_meta")
+  takenAt          DateTime @map("taken_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  organization  Organization  @relation(fields: [organizationId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
+  job           Job?          @relation(fields: [jobId], references: [id])
+  analysis      PhotoAnalysis?
+  entryPhotos   EntryPhoto[]
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([jobId])
+  @@map("photos")
+}
+
+enum PhotoStatus {
+  UPLOADED
+  PROCESSING
+  ANALYZED
+  FAILED
+}
+
+// ─────────────────────────────────────────────
+// ENTRY <> PHOTO JOIN
+// ─────────────────────────────────────────────
+model EntryPhoto {
+  entryId String @map("entry_id")
+  photoId String @map("photo_id")
+
+  entry Entry @relation(fields: [entryId], references: [id])
+  photo Photo @relation(fields: [photoId], references: [id])
+
+  @@id([entryId, photoId])
+  @@map("entry_photos")
+}
+
+// ─────────────────────────────────────────────
+// TRANSCRIPTS
+// ─────────────────────────────────────────────
+model Transcript {
+  id          String  @id @default(uuid())
+  entryId     String  @unique @map("entry_id")
+  text        String
+  language    String? @default("en")
+  confidence  Float?
+  durationSeconds Float? @map("duration_seconds")
+  wordCount   Int?    @map("word_count")
+  rawResponse Json?   @map("raw_response")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  entry Entry @relation(fields: [entryId], references: [id])
+
+  @@map("transcripts")
+}
+
+// ─────────────────────────────────────────────
+// PHOTO ANALYSIS
+// ─────────────────────────────────────────────
+model PhotoAnalysis {
+  id          String  @id @default(uuid())
+  photoId     String  @unique @map("photo_id")
+  description String
+  tags        String[]
+  safetyFlags String[] @map("safety_flags")
+  rawResponse Json?   @map("raw_response")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  photo Photo @relation(fields: [photoId], references: [id])
+
+  @@map("photo_analysis")
+}
+
+// ─────────────────────────────────────────────
+// REPORTS
+// ─────────────────────────────────────────────
+model Report {
+  id             String     @id @default(uuid())
+  organizationId String     @map("organization_id")
+  userId         String     @map("user_id")
+  jobId          String?    @map("job_id")
+  type           ReportType @default(GENERAL_FIELD_REPORT)
+  title          String
+  status         ReportStatus @default(DRAFT)
+  content        Json       // structured report sections
+  rawMarkdown    String?    @map("raw_markdown")
+  generatedBy    String     @default("deepseek") @map("generated_by")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  deletedAt      DateTime?  @map("deleted_at")
+
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  job          Job?          @relation(fields: [jobId], references: [id])
+  entries      ReportEntry[]
+  versions     ReportVersion[]
+
+  @@index([organizationId])
+  @@index([jobId])
+  @@map("reports")
+}
+
+enum ReportType {
+  GENERAL_FIELD_REPORT
+  DAILY_SITE_REPORT
+  SAFETY_REPORT
+  DEFICIENCY_REPORT
+  DELAY_NOTICE
+  EXTRA_WORK_REPORT
+  CHANGE_ORDER_NARRATIVE
+  MEETING_MINUTES
+  INSPECTION_REPORT
+  OWNER_UPDATE
+  WEEKLY_PROGRESS_REPORT
+}
+
+enum ReportStatus {
+  DRAFT
+  REVIEW
+  FINAL
+  ARCHIVED
+}
+
+// ─────────────────────────────────────────────
+// REPORT <> ENTRY JOIN
+// ─────────────────────────────────────────────
+model ReportEntry {
+  reportId String @map("report_id")
+  entryId  String @map("entry_id")
+
+  report Report @relation(fields: [reportId], references: [id])
+  entry  Entry  @relation(fields: [entryId], references: [id])
+
+  @@id([reportId, entryId])
+  @@map("report_entries")
+}
+
+// ─────────────────────────────────────────────
+// REPORT VERSIONS
+// ─────────────────────────────────────────────
+model ReportVersion {
+  id        String @id @default(uuid())
+  reportId  String @map("report_id")
+  version   Int
+  content   Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  report Report @relation(fields: [reportId], references: [id])
+
+  @@index([reportId])
+  @@map("report_versions")
+}
+
+// ─────────────────────────────────────────────
+// SYNC EVENTS
+// ─────────────────────────────────────────────
+model SyncEvent {
+  id         String          @id @default(uuid())
+  entryId    String?         @map("entry_id")
+  deviceId   String?         @map("device_id")
+  eventType  SyncEventType   @map("event_type")
+  status     SyncEventStatus @default(SUCCESS)
+  metadata   Json?
+  createdAt  DateTime        @default(now()) @map("created_at")
+
+  entry Entry? @relation(fields: [entryId], references: [id])
+
+  @@index([entryId])
+  @@map("sync_events")
+}
+
+enum SyncEventType {
+  UPLOAD_STARTED
+  UPLOAD_COMPLETED
+  UPLOAD_FAILED
+  RETRY_ATTEMPTED
+}
+
+enum SyncEventStatus {
+  SUCCESS
+  FAILURE
+  PENDING
+}
+
+// ─────────────────────────────────────────────
+// AUDIT LOGS
+// ─────────────────────────────────────────────
+model AuditLog {
+  id             String @id @default(uuid())
+  organizationId String @map("organization_id")
+  userId         String? @map("user_id")
+  action         String
+  resourceType   String? @map("resource_type")
+  resourceId     String? @map("resource_id")
+  metadata       Json?
+  ipAddress      String? @map("ip_address")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User?        @relation(fields: [userId], references: [id])
+
+  @@index([organizationId])
+  @@index([userId])
+  @@map("audit_logs")
+}
