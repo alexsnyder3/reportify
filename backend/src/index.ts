@@ -68,9 +68,13 @@ async function start() {
     await prisma.$connect();
     logger.info('Database connected');
 
-    // Ensure S3/MinIO bucket exists
-    await ensureBucketExists();
-    logger.info('Storage bucket ready');
+    // Ensure S3/MinIO bucket exists (non-fatal — storage may not be configured yet)
+    try {
+      await ensureBucketExists();
+      logger.info('Storage bucket ready');
+    } catch (err) {
+      logger.warn('Storage bucket check failed — uploads will not work until S3 is configured', { error: String(err) });
+    }
 
     // Start background workers
     startTranscriptionWorker();
