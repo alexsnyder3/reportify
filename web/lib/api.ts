@@ -3,8 +3,14 @@ import Cookies from 'js-cookie';
 
 const TOKEN_KEY = 'reportify_token';
 
+function getBaseUrl() {
+  const url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  if (url.startsWith('http')) return url;
+  return `https://${url}`;
+}
+
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  baseURL: getBaseUrl(),
   headers: { 'Content-Type': 'application/json' },
 });
 
