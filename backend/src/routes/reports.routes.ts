@@ -50,7 +50,7 @@ router.get('/', validate(listSchema, 'query'), async (req: Request, res: Respons
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const report = await prisma.report.findFirst({
-      where: { id: req.params.id, organizationId: req.user!.orgId, deletedAt: null },
+      where: { id: String(req.params.id), organizationId: req.user!.orgId, deletedAt: null },
       include: {
         user: { select: { id: true, firstName: true, lastName: true, email: true } },
         job: true,
@@ -76,7 +76,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const report = await prisma.report.findFirst({
-      where: { id: req.params.id, organizationId: req.user!.orgId },
+      where: { id: String(req.params.id), organizationId: req.user!.orgId },
     });
     if (!report) throw new NotFoundError('Report');
 
@@ -98,7 +98,7 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
     }
 
     const updated = await prisma.report.update({
-      where: { id: req.params.id },
+      where: { id: String(req.params.id) },
       data: {
         ...(status && { status }),
         ...(content && { content }),
@@ -113,10 +113,10 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
 router.delete('/:id', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const report = await prisma.report.findFirst({
-      where: { id: req.params.id, organizationId: req.user!.orgId },
+      where: { id: String(req.params.id), organizationId: req.user!.orgId },
     });
     if (!report) throw new NotFoundError('Report');
-    await prisma.report.update({ where: { id: req.params.id }, data: { deletedAt: new Date() } });
+    await prisma.report.update({ where: { id: String(req.params.id) }, data: { deletedAt: new Date() } });
     res.json({ success: true });
   } catch (err) { next(err); }
 });

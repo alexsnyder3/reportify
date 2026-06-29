@@ -72,7 +72,7 @@ router.get('/invites', authorize('ADMIN'), async (req: Request, res: Response, n
 // DELETE /api/users/invites/:id
 router.delete('/invites/:id', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    await revokeInvite(req.user!.orgId, req.params.id);
+    await revokeInvite(req.user!.orgId, String(req.params.id));
     res.json({ success: true });
   } catch (err) { next(err); }
 });
@@ -81,11 +81,11 @@ router.delete('/invites/:id', authorize('ADMIN'), async (req: Request, res: Resp
 router.patch('/:id/deactivate', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = await prisma.user.findFirst({
-      where: { id: req.params.id, organizationId: req.user!.orgId },
+      where: { id: String(req.params.id), organizationId: req.user!.orgId },
     });
     if (!user) throw new NotFoundError('User');
     const updated = await prisma.user.update({
-      where: { id: req.params.id },
+      where: { id: String(req.params.id) },
       data: { isActive: false },
       select: { id: true, isActive: true },
     });

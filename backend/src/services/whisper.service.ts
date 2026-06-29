@@ -18,7 +18,7 @@ export async function transcribeAudio(
   if (!apiKey) throw new AppError('Whisper API key not configured', 500);
 
   const form = new FormData();
-  const blob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+  const blob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/mpeg' });
   form.append('file', blob, filename);
   form.append('model', 'whisper-1');
   form.append('language', language);

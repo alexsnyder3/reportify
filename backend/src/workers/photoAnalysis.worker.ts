@@ -4,8 +4,6 @@ import { analyzePhoto } from '../services/gemini.service.js';
 import { getSignedDownloadUrl } from '../services/storage.service.js';
 import { connection, QUEUE_NAMES } from './queue.js';
 import { logger } from '../utils/logger.js';
-import fetch from 'node-fetch';
-
 export interface PhotoAnalysisJobData {
   photoId: string;
   fileKey: string;

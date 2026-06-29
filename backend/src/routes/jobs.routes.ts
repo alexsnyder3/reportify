@@ -31,7 +31,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 // GET /api/jobs/:id
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const job = await jobService.getJob(req.user!.orgId, req.params.id);
+    const job = await jobService.getJob(req.user!.orgId, String(req.params.id));
     res.json({ success: true, data: job });
   } catch (err) { next(err); }
 });
@@ -47,7 +47,7 @@ router.post('/', authorize('ADMIN', 'MANAGER'), validate(createJobSchema), async
 // PATCH /api/jobs/:id
 router.patch('/:id', authorize('ADMIN', 'MANAGER'), validate(updateJobSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const job = await jobService.updateJob(req.user!.orgId, req.params.id, req.body);
+    const job = await jobService.updateJob(req.user!.orgId, String(req.params.id), req.body);
     res.json({ success: true, data: job });
   } catch (err) { next(err); }
 });
@@ -55,7 +55,7 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), validate(updateJobSchema), a
 // DELETE /api/jobs/:id
 router.delete('/:id', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    await jobService.deleteJob(req.user!.orgId, req.params.id);
+    await jobService.deleteJob(req.user!.orgId, String(req.params.id));
     res.json({ success: true });
   } catch (err) { next(err); }
 });

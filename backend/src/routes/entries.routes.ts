@@ -47,7 +47,7 @@ router.get('/', validate(listSchema, 'query'), async (req: Request, res: Respons
 // GET /api/entries/:id
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const entry = await entryService.getEntry(req.user!.orgId, req.params.id);
+    const entry = await entryService.getEntry(req.user!.orgId, String(req.params.id));
 
     // Supervisors can only see their own
     if (req.user!.role === 'SUPERVISOR' && entry.userId !== req.user!.userId) {
@@ -68,7 +68,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 // PATCH /api/entries/:id/job  (reassign entry to a different job)
 router.patch('/:id/job', authorize('ADMIN', 'MANAGER'), validate(reassignSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const entry = await entryService.reassignEntryJob(req.user!.orgId, req.params.id, req.body.jobId);
+    const entry = await entryService.reassignEntryJob(req.user!.orgId, String(req.params.id), req.body.jobId);
     res.json({ success: true, data: entry });
   } catch (err) { next(err); }
 });
@@ -76,7 +76,7 @@ router.patch('/:id/job', authorize('ADMIN', 'MANAGER'), validate(reassignSchema)
 // GET /api/entries/:id/audio-url  (get fresh signed URL)
 router.get('/:id/audio-url', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const entry = await entryService.getEntry(req.user!.orgId, req.params.id);
+    const entry = await entryService.getEntry(req.user!.orgId, String(req.params.id));
     if (!entry.audioFileKey) {
       res.status(404).json({ success: false, error: { message: 'No audio file' } });
       return;
