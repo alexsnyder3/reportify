@@ -1,5 +1,3 @@
-import FormData from 'form-data';
-import fetch from 'node-fetch';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../utils/errors.js';
 
@@ -20,7 +18,8 @@ export async function transcribeAudio(
   if (!apiKey) throw new AppError('Whisper API key not configured', 500);
 
   const form = new FormData();
-  form.append('file', audioBuffer, { filename, contentType: 'audio/mpeg' });
+  const blob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+  form.append('file', blob, filename);
   form.append('model', 'whisper-1');
   form.append('language', language);
   form.append('response_format', 'verbose_json');
@@ -29,7 +28,6 @@ export async function transcribeAudio(
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      ...form.getHeaders(),
     },
     body: form,
   });

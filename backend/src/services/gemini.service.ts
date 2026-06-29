@@ -1,6 +1,5 @@
 // Photo analysis via DeepSeek vision (deepseek-vl2)
 // Gemini is not used — DeepSeek handles both reports and photo analysis
-import fetch from 'node-fetch';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../utils/errors.js';
 
