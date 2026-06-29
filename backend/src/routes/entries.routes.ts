@@ -25,7 +25,7 @@ const reassignSchema = z.object({
 // GET /api/entries
 router.get('/', validate(listSchema, 'query'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { userId, jobId, dateFrom, dateTo, page, limit } = req.query as z.infer<typeof listSchema>;
+    const { userId, jobId, dateFrom, dateTo, page, limit } = req.query as unknown as z.infer<typeof listSchema>;
 
     // Supervisors can only see their own entries
     const filterUserId =

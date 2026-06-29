@@ -14,8 +14,8 @@ export function validate(schema: ZodSchema, target: 'body' | 'query' | 'params' 
           error: {
             message: 'Validation failed',
             code: 'VALIDATION_ERROR',
-            details: err.issues.map((e: { path: (string | number)[]; message: string }) => ({
-              field: e.path.join('.'),
+            details: err.issues.map((e) => ({
+              field: e.path.map(String).join('.'),
               message: e.message,
             })),
           },

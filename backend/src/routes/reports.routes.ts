@@ -18,7 +18,7 @@ const listSchema = z.object({
 // GET /api/reports
 router.get('/', validate(listSchema, 'query'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { jobId, userId, page, limit } = req.query as z.infer<typeof listSchema>;
+    const { jobId, userId, page, limit } = req.query as unknown as z.infer<typeof listSchema>;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where = {
