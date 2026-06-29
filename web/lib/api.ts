@@ -4,7 +4,8 @@ import Cookies from 'js-cookie';
 const TOKEN_KEY = 'reportify_token';
 
 function getBaseUrl() {
-  const url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const url = process.env.NEXT_PUBLIC_API_URL
+    || 'https://reportify-production-67e1.up.railway.app';
   if (url.startsWith('http')) return url;
   return `https://${url}`;
 }
