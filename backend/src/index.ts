@@ -1,4 +1,13 @@
 import 'dotenv/config';
+
+// Prevent unhandled errors from crashing the server
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection (suppressed):', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception (suppressed):', err);
+});
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
