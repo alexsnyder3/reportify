@@ -26,9 +26,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50 print:block print:h-auto print:overflow-visible">
       <div className="print:hidden"><Sidebar /></div>
-      <main className="flex-1 overflow-y-auto print:overflow-visible">
+      <main className="flex-1 overflow-y-auto print:overflow-visible print:h-auto">
         <div className="mx-auto max-w-7xl p-8">
           {children}
         </div>
