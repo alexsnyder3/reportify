@@ -81,5 +81,6 @@ export function startPhotoAnalysisWorker() {
   worker.on('failed', (job, err) =>
     logger.error('Photo analysis job failed', { jobId: job?.id, error: String(err) }),
   );
+  worker.on('error', (err) => logger.error('Photo analysis worker error', { error: String(err) }));
   return worker;
 }

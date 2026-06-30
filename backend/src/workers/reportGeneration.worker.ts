@@ -93,5 +93,6 @@ export function startReportWorker() {
   worker.on('failed', (job, err) =>
     logger.error('Report job failed', { jobId: job?.id, error: String(err) }),
   );
+  worker.on('error', (err) => logger.error('Report worker error', { error: String(err) }));
   return worker;
 }

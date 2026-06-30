@@ -80,6 +80,7 @@ export function startTranscriptionWorker() {
   worker.on('failed', (job, err) =>
     logger.error('Transcription job failed', { jobId: job?.id, error: String(err) }),
   );
+  worker.on('error', (err) => logger.error('Transcription worker error', { error: String(err) }));
 
   return worker;
 }

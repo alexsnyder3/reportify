@@ -1,17 +1,21 @@
 import { Queue } from 'bullmq';
 
 function redisConnection() {
-  const url = process.env.REDIS_URL || 'redis://localhost:6379';
+  // Railway private networking: use REDIS_PRIVATE_URL or REDIS_URL
+  const url = process.env.REDIS_PRIVATE_URL || process.env.REDIS_URL || 'redis://localhost:6379';
   try {
     const parsed = new URL(url);
     return {
       host: parsed.hostname,
       port: parseInt(parsed.port || '6379', 10),
       password: parsed.password || undefined,
+      username: parsed.username || undefined,
       maxRetriesPerRequest: null as null,
+      enableReadyCheck: false,
+      retryStrategy: (times: number) => Math.min(times * 500, 5000),
     };
   } catch {
-    return { host: 'localhost', port: 6379, maxRetriesPerRequest: null as null };
+    return { host: 'localhost', port: 6379, maxRetriesPerRequest: null as null, enableReadyCheck: false };
   }
 }
 

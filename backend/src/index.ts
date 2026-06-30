@@ -91,11 +91,15 @@ async function start() {
       logger.warn('Storage bucket check failed — uploads will not work until S3 is configured', { error: String(err) });
     }
 
-    // Start background workers
-    startTranscriptionWorker();
-    startPhotoAnalysisWorker();
-    startReportWorker();
-    logger.info('Background workers started');
+    // Start background workers (non-fatal — Redis may not be available)
+    try {
+      startTranscriptionWorker();
+      startPhotoAnalysisWorker();
+      startReportWorker();
+      logger.info('Background workers started');
+    } catch (err) {
+      logger.warn('Background workers failed to start — AI processing unavailable', { error: String(err) });
+    }
 
     app.listen(PORT, () => {
       logger.info(`Reportify API running on http://localhost:${PORT}`);
