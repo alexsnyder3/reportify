@@ -4,7 +4,20 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -14,7 +27,6 @@ import ca.reportify.app.ui.screens.queue.QueueScreen
 import ca.reportify.app.ui.screens.settings.SettingsScreen
 import ca.reportify.app.utils.SessionManager
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
@@ -79,26 +91,26 @@ class MainActivity : ComponentActivity() {
 // Placeholder camera screen — full CameraX implementation in camera branch
 @Composable
 private fun CameraPlaceholderScreen(onBack: () -> Unit) {
-    androidx.compose.material3.Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Black,
+    Scaffold(
+        containerColor = Color.Black,
         topBar = {
-            androidx.compose.material3.IconButton(onClick = onBack) {
-                androidx.compose.material3.Icon(
-                    androidx.compose.material.icons.Icons.Default.ArrowBack,
+            IconButton(onClick = onBack) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = androidx.compose.ui.graphics.Color.White,
+                    tint = Color.White,
                 )
             }
         }
     ) { padding ->
-        androidx.compose.foundation.layout.Box(
-            modifier = androidx.compose.ui.Modifier.fillMaxSize().padding(padding),
-            contentAlignment = androidx.compose.ui.Alignment.Center,
+        Box(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentAlignment = Alignment.Center,
         ) {
-            androidx.compose.material3.Text(
+            Text(
                 "Camera — tap back to return\nFull CameraX implementation in next release",
-                color = androidx.compose.ui.graphics.Color.White,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                color = Color.White,
+                textAlign = TextAlign.Center,
             )
         }
     }

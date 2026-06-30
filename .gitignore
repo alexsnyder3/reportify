@@ -44,3 +44,5 @@ backend/uploads/
 
 # Coverage
 coverage/
+
+*.hprof

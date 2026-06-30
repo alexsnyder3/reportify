@@ -190,6 +190,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun clearError() = _uiState.update { it.copy(error = null) }
+    fun setError(msg: String) = _uiState.update { it.copy(error = msg) }
 }
 
 private fun Double.pow(exp: Double) = Math.pow(this, exp)

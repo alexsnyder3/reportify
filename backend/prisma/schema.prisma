@@ -98,6 +98,7 @@ model Job {
   organizationId String  @map("organization_id")
   name           String
   address        String?
+  projectNumber  String?  @map("project_number")
   latitude       Float?
   longitude      Float?
   radiusMeters   Float   @default(200) @map("radius_meters")

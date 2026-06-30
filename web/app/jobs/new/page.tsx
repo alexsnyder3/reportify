@@ -19,6 +19,7 @@ export default function NewJobPage() {
   const [form, setForm] = useState({
     name: '',
     address: '',
+    projectNumber: '',
     latitude: '',
     longitude: '',
     radiusMeters: '200',
@@ -33,6 +34,7 @@ export default function NewJobPage() {
       api.post('/api/jobs', {
         name: form.name,
         address: form.address || undefined,
+        projectNumber: form.projectNumber || undefined,
         latitude: form.latitude ? parseFloat(form.latitude) : undefined,
         longitude: form.longitude ? parseFloat(form.longitude) : undefined,
         radiusMeters: parseFloat(form.radiusMeters) || 200,
@@ -63,6 +65,7 @@ export default function NewJobPage() {
             <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }} className="space-y-4">
               <Input label="Job Name *" value={form.name} onChange={set('name')} required placeholder="Downtown Office Tower" />
               <Input label="Address" value={form.address} onChange={set('address')} placeholder="123 Main Street, Vancouver, BC" />
+              <Input label="Project Number" value={form.projectNumber} onChange={set('projectNumber')} placeholder="25-160" />
 
               <div className="grid grid-cols-2 gap-4">
                 <Input label="Latitude" type="number" step="any" value={form.latitude} onChange={set('latitude')} placeholder="49.2827" />

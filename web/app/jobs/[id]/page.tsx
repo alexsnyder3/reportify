@@ -16,7 +16,7 @@ export default function EditJobPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ name: '', address: '', latitude: '', longitude: '', radiusMeters: '200', notes: '', isActive: true });
+  const [form, setForm] = useState({ name: '', address: '', projectNumber: '', latitude: '', longitude: '', radiusMeters: '200', notes: '', isActive: true });
 
   const { data: job } = useQuery({
     queryKey: ['job', id],
@@ -28,6 +28,7 @@ export default function EditJobPage() {
       setForm({
         name: job.name || '',
         address: job.address || '',
+        projectNumber: job.projectNumber || '',
         latitude: job.latitude?.toString() || '',
         longitude: job.longitude?.toString() || '',
         radiusMeters: job.radiusMeters?.toString() || '200',
@@ -45,6 +46,7 @@ export default function EditJobPage() {
       api.patch(`/api/jobs/${id}`, {
         name: form.name,
         address: form.address || undefined,
+        projectNumber: form.projectNumber || undefined,
         latitude: form.latitude ? parseFloat(form.latitude) : undefined,
         longitude: form.longitude ? parseFloat(form.longitude) : undefined,
         radiusMeters: parseFloat(form.radiusMeters) || 200,
@@ -71,6 +73,7 @@ export default function EditJobPage() {
             <form onSubmit={(e) => { e.preventDefault(); update.mutate(); }} className="space-y-4">
               <Input label="Job Name *" value={form.name} onChange={set('name')} required />
               <Input label="Address" value={form.address} onChange={set('address')} />
+              <Input label="Project Number" value={form.projectNumber} onChange={set('projectNumber')} placeholder="25-160" />
               <div className="grid grid-cols-2 gap-4">
                 <Input label="Latitude" type="number" step="any" value={form.latitude} onChange={set('latitude')} />
                 <Input label="Longitude" type="number" step="any" value={form.longitude} onChange={set('longitude')} />

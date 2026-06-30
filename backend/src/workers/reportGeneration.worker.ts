@@ -47,6 +47,10 @@ async function processReportGeneration(job: Job<ReportJobData>) {
       supervisorName,
       date,
       photoDescriptions,
+      jobAddress: entry.job?.address || undefined,
+      projectNumber: (entry.job as any)?.projectNumber || undefined,
+      latitude: entry.latitude || entry.job?.latitude || undefined,
+      longitude: entry.longitude || entry.job?.longitude || undefined,
     });
 
     const report = await prisma.report.create({

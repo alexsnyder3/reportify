@@ -1,7 +1,11 @@
 package ca.reportify.app.ui.screens.main
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -29,6 +33,13 @@ fun MainScreen(
     viewModel: MainViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) viewModel.startRecording()
+        else viewModel.setError("Microphone permission is required to record")
+    }
 
     val pulseAnim = rememberInfiniteTransition(label = "pulse")
     val pulseScale by pulseAnim.animateFloat(
@@ -185,7 +196,7 @@ fun MainScreen(
                 Button(
                     onClick = {
                         if (state.isRecording) viewModel.stopRecording()
-                        else viewModel.startRecording()
+                        else micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     },
                     modifier = Modifier.size(180.dp),
                     shape = CircleShape,
@@ -229,8 +240,8 @@ fun MainScreen(
                     .height(60.dp),
                 shape = RoundedCornerShape(16.dp),
                 enabled = !state.isRecording,
-                colors = OutlinedButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF374151)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                border = BorderStroke(1.5.dp, Color(0xFF374151)),
             ) {
                 Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(10.dp))
@@ -259,7 +270,7 @@ fun MainScreen(
                 }
             }
 
-            navigationBarsPadding()
+            Spacer(Modifier.navigationBarsPadding())
         }
     }
 }

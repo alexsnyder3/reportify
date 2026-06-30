@@ -73,6 +73,7 @@ export async function getJob(orgId: string, jobId: string) {
 export async function createJob(orgId: string, data: {
   name: string;
   address?: string;
+  projectNumber?: string;
   latitude?: number;
   longitude?: number;
   radiusMeters?: number;
@@ -86,6 +87,7 @@ export async function createJob(orgId: string, data: {
 export async function updateJob(orgId: string, jobId: string, data: {
   name?: string;
   address?: string;
+  projectNumber?: string;
   latitude?: number;
   longitude?: number;
   radiusMeters?: number;
