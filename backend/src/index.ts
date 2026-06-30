@@ -34,6 +34,9 @@ import dashboardRoutes from './routes/dashboard.routes.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust Railway's reverse proxy
+app.set('trust proxy', 1);
+
 // ─── Security ───────────────────────────────
 app.use(helmet());
 const allowedOrigins = [
