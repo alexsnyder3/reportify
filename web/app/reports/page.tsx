@@ -59,7 +59,12 @@ export default function ReportsPage() {
                       <FileText className="h-5 w-5 text-green-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{report.title}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-900 truncate">{report.title}</p>
+                        <span className="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                          {report.type === 'SAFETY_REPORT' ? 'Safety' : 'Supervisor'}
+                        </span>
+                      </div>
                       <p className="text-sm text-gray-500">
                         {report.user.firstName} {report.user.lastName}
                         {report.job && ` · ${report.job.name}`}

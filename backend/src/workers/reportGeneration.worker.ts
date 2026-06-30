@@ -1,6 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { prisma } from '../utils/prisma.js';
-import { generateFieldReport } from '../services/deepseek.service.js';
+import { generateFieldReport, generateSafetyReport } from '../services/deepseek.service.js';
 import { connection, QUEUE_NAMES } from './queue.js';
 import { logger } from '../utils/logger.js';
 
@@ -40,51 +40,74 @@ async function processReportGeneration(job: Job<ReportJobData>) {
   const supervisorName = `${entry.user.firstName} ${entry.user.lastName}`;
   const date = entry.recordedAt.toISOString().split('T')[0];
 
+  const jobAddress = entry.job?.address || undefined;
+  const jobProjectNumber = (entry.job as any)?.projectNumber || undefined;
+  const latitude = entry.latitude || entry.job?.latitude || undefined;
+  const longitude = entry.longitude || entry.job?.longitude || undefined;
+
   try {
-    const { content, rawMarkdown } = await generateFieldReport({
-      transcript: entry.transcript.text,
-      projectName,
-      supervisorName,
-      date,
-      photoDescriptions,
-      jobAddress: entry.job?.address || undefined,
-      projectNumber: (entry.job as any)?.projectNumber || undefined,
-      latitude: entry.latitude || entry.job?.latitude || undefined,
-      longitude: entry.longitude || entry.job?.longitude || undefined,
-    });
+    const [supervisorResult, safetyResult] = await Promise.all([
+      generateFieldReport({
+        transcript: entry.transcript.text,
+        projectName,
+        supervisorName,
+        date,
+        photoDescriptions,
+        jobAddress,
+        projectNumber: jobProjectNumber,
+        latitude,
+        longitude,
+      }),
+      generateSafetyReport({
+        transcript: entry.transcript.text,
+        projectName,
+        supervisorName,
+        date,
+        jobAddress,
+        projectNumber: jobProjectNumber,
+        latitude,
+        longitude,
+      }),
+    ]);
 
-    const report = await prisma.report.create({
-      data: {
-        organizationId: entry.organizationId,
-        userId: entry.userId,
-        jobId: entry.jobId,
-        type: 'GENERAL_FIELD_REPORT',
-        title: `${projectName} — ${date}`,
-        status: 'DRAFT',
-        content: content as object,
-        rawMarkdown,
-        generatedBy: 'deepseek',
-        entries: {
-          create: { entryId: entry.id },
+    const reportsToCreate = [
+      { type: 'GENERAL_FIELD_REPORT' as const, content: supervisorResult.content, rawMarkdown: supervisorResult.rawMarkdown },
+      { type: 'SAFETY_REPORT' as const, content: safetyResult.content, rawMarkdown: safetyResult.rawMarkdown },
+    ];
+
+    for (const r of reportsToCreate) {
+      const report = await prisma.report.create({
+        data: {
+          organizationId: entry.organizationId,
+          userId: entry.userId,
+          jobId: entry.jobId,
+          type: r.type,
+          title: `${projectName} — ${date}`,
+          status: 'DRAFT',
+          content: r.content as object,
+          rawMarkdown: r.rawMarkdown,
+          generatedBy: 'deepseek',
+          entries: {
+            create: { entryId: entry.id },
+          },
         },
-      },
-    });
+      });
 
-    // Save a version snapshot
-    await prisma.reportVersion.create({
-      data: {
-        reportId: report.id,
-        version: 1,
-        content: content as object,
-      },
-    });
+      await prisma.reportVersion.create({
+        data: {
+          reportId: report.id,
+          version: 1,
+          content: r.content as object,
+        },
+      });
+    }
 
     await prisma.entry.update({
       where: { id: entryId },
       data: { status: 'REPORT_GENERATED' },
     });
 
-    logger.info('Report generated', { entryId, reportId: report.id });
+    logger.info('Reports generated', { entryId });
   } catch (err) {
     logger.error('Report generation failed', { entryId, error: String(err) });
     throw err;

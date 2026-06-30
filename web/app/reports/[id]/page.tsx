@@ -34,6 +34,22 @@ interface SupervisorReportContent {
   projectName?: string;
   supervisor?: string;
   summaryOfWork?: string;
+  // safety report fields
+  firePreventionControl?: string;
+  electricalInstallations?: string;
+  guardsOnToolsEquipment?: string;
+  laddersWalkwaysRamps?: string;
+  scaffoldsWorkPlatforms?: string;
+  ppeAdequate?: string;
+  cranesHoists?: string;
+  heavyEquipment?: string;
+  motorVehicles?: string;
+  barricadesHandrails?: string;
+  materialsHandlingStorage?: string;
+  excavationsShoringSloping?: string;
+  flammableStorage?: string;
+  weldingCutting?: string;
+  steelErection?: string;
 }
 
 function Field({ label, value }: { label: string; value?: string }) {
@@ -51,6 +67,22 @@ function QField({ number, label, value }: { number: string; label: string; value
     <div className="py-3 border-b border-gray-100 last:border-0">
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Q{number} — {label}</p>
       <p className="text-sm text-gray-800 whitespace-pre-wrap">{value || 'N/A'}</p>
+    </div>
+  );
+}
+
+function checklistColor(value?: string) {
+  if (value?.toLowerCase().startsWith('no')) return 'text-red-600 font-semibold';
+  if (value?.toLowerCase().startsWith('n/a')) return 'text-gray-400';
+  return 'text-green-700';
+}
+
+function ChecklistItem({ number, label, value }: { number: number; label: string; value?: string }) {
+  return (
+    <div className="py-3">
+      <p className="text-xs font-semibold text-gray-500 mb-1">Question {number}</p>
+      <p className="text-sm text-gray-800">{label}</p>
+      <p className={`mt-1 text-sm italic ${checklistColor(value)}`}>{value || 'N/A'}</p>
     </div>
   );
 }
@@ -73,7 +105,26 @@ export default function ReportDetailPage() {
   if (!report) return <AppLayout><p className="text-red-600">Report not found</p></AppLayout>;
 
   const c = report.content as SupervisorReportContent;
+  const isSafetyReport = report.type === 'SAFETY_REPORT';
   const isSnyderFormat = !!(c.inspectionsToday || c.generalNotes || c.toolboxTalk);
+
+  const checklistItems: Array<{ number: number; label: string; key: keyof SupervisorReportContent }> = [
+    { number: 1, label: 'Fire Prevention and Control Adequate?', key: 'firePreventionControl' },
+    { number: 2, label: 'Electrical Installations Adequate?', key: 'electricalInstallations' },
+    { number: 3, label: 'Guards on Tools and Equipment Adequate?', key: 'guardsOnToolsEquipment' },
+    { number: 4, label: 'Ladders, Walkways, and Ramps Adequate?', key: 'laddersWalkwaysRamps' },
+    { number: 5, label: 'Scaffolds, Work Platforms Adequate?', key: 'scaffoldsWorkPlatforms' },
+    { number: 6, label: 'PPE Adequate?', key: 'ppeAdequate' },
+    { number: 7, label: 'Cranes/Hoists - Inspection and Maintenance Adequate?', key: 'cranesHoists' },
+    { number: 8, label: 'Heavy Equipment - Operation and Control Adequate?', key: 'heavyEquipment' },
+    { number: 9, label: 'Motor Vehicles - Parking and Control Adequate?', key: 'motorVehicles' },
+    { number: 10, label: 'Barricades/Handrails Adequate?', key: 'barricadesHandrails' },
+    { number: 11, label: 'Materials Handling/Storage Adequate?', key: 'materialsHandlingStorage' },
+    { number: 12, label: 'Excavations, Shoring, and Sloping Adequate?', key: 'excavationsShoringSloping' },
+    { number: 13, label: 'Storage of Flammable/Combustible Liquids/Chemicals Adequate?', key: 'flammableStorage' },
+    { number: 14, label: 'Welding/Cutting Operations Adequate?', key: 'weldingCutting' },
+    { number: 15, label: 'Steel Erection Adequate?', key: 'steelErection' },
+  ];
 
   return (
     <AppLayout>
@@ -105,7 +156,41 @@ export default function ReportDetailPage() {
           )}
         </div>
 
-        {isSnyderFormat ? (
+        {isSafetyReport ? (
+          <>
+            {/* Snyder Construction Inspection / Safety Report */}
+            <Card>
+              <CardHeader>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Snyder Construction</h2>
+                  <p className="text-base font-semibold text-gray-600">Inspection Report</p>
+                  <p className="text-xs text-gray-400 mt-1">Subject: B Job Operations and Conditions MONTHLY/SAFETY REP</p>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-0">
+                <Field label="Job Name" value={c.jobName} />
+                <Field label="Job Address" value={c.jobAddress} />
+                <Field label="Project Number" value={c.projectNumber} />
+                <Field label="Submitted By" value={c.submittedBy} />
+                <Field label="Date" value={c.date} />
+                <Field label="Weather" value={c.weather} />
+                <Field label="Temperature" value={c.temperature} />
+                <Field label="Labourers on Site" value={c.labourersOnSite} />
+                <Field label="Supervisors on Site" value={c.supervisorsOnSite} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 divide-y sm:divide-y-0 divide-gray-100">
+                  {checklistItems.map((item) => (
+                    <ChecklistItem key={item.number} number={item.number} label={item.label} value={c[item.key] as string | undefined} />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        ) : isSnyderFormat ? (
           <>
             {/* Snyder Construction Supervisor's Report */}
             <Card>
