@@ -7,44 +7,50 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatDateTime, statusColors } from '@/lib/utils';
+import { statusColors } from '@/lib/utils';
 import { ArrowLeft, Printer } from 'lucide-react';
 import Link from 'next/link';
 
-interface ReportContent {
-  projectName: string;
-  date: string;
-  supervisor: string;
+interface SupervisorReportContent {
+  jobName?: string;
+  jobAddress?: string;
+  projectNumber?: string;
+  submittedBy?: string;
+  date?: string;
   weather?: string;
-  summaryOfWork: string;
-  labour: string[];
-  subcontractors: string[];
-  equipment: string[];
-  materialsDelivered: string[];
-  delays: string[];
-  safetyObservations: string[];
-  qualityIssues: string[];
-  deficiencies: string[];
-  photosReferenced: string[];
-  actionItems: string[];
-  tomorrowsWork: string;
-  possibleChangeOrderItems: string[];
-  transcript: string;
+  temperature?: string;
+  labourersOnSite?: string;
+  equipmentOnSite?: string;
+  supervisorsOnSite?: string;
+  inspectionsToday?: string;
+  generalNotes?: string;
+  delaysDueToPoorConditions?: string;
+  workerIllnessSymptoms?: string;
+  toolboxTalk?: string;
+  subtradesOnsite?: string;
+  healthSafetyHazards?: string;
+  transcript?: string;
+  // legacy fields
+  projectName?: string;
+  supervisor?: string;
+  summaryOfWork?: string;
 }
 
-function Section({ title, items }: { title: string; items: string[] }) {
-  if (!items?.length) return null;
+function Field({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
   return (
-    <div>
-      <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">{title}</h3>
-      <ul className="space-y-1">
-        {items.map((item, i) => (
-          <li key={i} className="flex gap-2 text-sm text-gray-700">
-            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400" />
-            {item}
-          </li>
-        ))}
-      </ul>
+    <div className="grid grid-cols-[180px_1fr] gap-2 py-2 border-b border-gray-100 last:border-0">
+      <span className="text-sm font-medium text-gray-500">{label}</span>
+      <span className="text-sm text-gray-900">{value}</span>
+    </div>
+  );
+}
+
+function QField({ number, label, value }: { number: string; label: string; value?: string }) {
+  return (
+    <div className="py-3 border-b border-gray-100 last:border-0">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Q{number} — {label}</p>
+      <p className="text-sm text-gray-800 whitespace-pre-wrap">{value || 'N/A'}</p>
     </div>
   );
 }
@@ -66,11 +72,13 @@ export default function ReportDetailPage() {
   if (isLoading) return <AppLayout><div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" /></div></AppLayout>;
   if (!report) return <AppLayout><p className="text-red-600">Report not found</p></AppLayout>;
 
-  const content = report.content as ReportContent;
+  const c = report.content as SupervisorReportContent;
+  const isSnyderFormat = !!(c.inspectionsToday || c.generalNotes || c.toolboxTalk);
 
   return (
     <AppLayout>
       <div className="max-w-3xl space-y-6">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/reports"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /></Button></Link>
@@ -97,50 +105,68 @@ export default function ReportDetailPage() {
           )}
         </div>
 
-        {/* Report body */}
-        <Card>
-          <CardHeader>
-            <div className="space-y-1">
+        {isSnyderFormat ? (
+          <>
+            {/* Snyder Construction Supervisor's Report */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Snyder Construction</h2>
+                    <p className="text-base font-semibold text-gray-600">Supervisor&apos;s Report</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-0">
+                <Field label="Job Name" value={c.jobName} />
+                <Field label="Job Address" value={c.jobAddress} />
+                <Field label="Project Number" value={c.projectNumber} />
+                <Field label="Submitted By" value={c.submittedBy} />
+                <Field label="Date" value={c.date} />
+                <Field label="Weather" value={c.weather} />
+                <Field label="Temperature" value={c.temperature} />
+                <Field label="Labourers on Site" value={c.labourersOnSite} />
+                <Field label="Equipment on Site" value={c.equipmentOnSite} />
+                <Field label="Supervisors on Site" value={c.supervisorsOnSite} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6 space-y-0">
+                <QField number="1" label="Inspections Today" value={c.inspectionsToday} />
+                <QField number="5" label="General Notes" value={c.generalNotes} />
+                <QField number="7" label="Delays Due to Poor Site Conditions?" value={c.delaysDueToPoorConditions} />
+                <QField number="8" label="Worker Illness Symptoms?" value={c.workerIllnessSymptoms} />
+                <QField number="10" label="Toolbox Talk" value={c.toolboxTalk} />
+                <QField number="11" label="Subtrades Onsite" value={c.subtradesOnsite} />
+                <QField number="12" label="Health & Safety Specific Hazards Today" value={c.healthSafetyHazards} />
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          /* Legacy format fallback */
+          <Card>
+            <CardHeader>
               <h2 className="text-xl font-bold text-gray-900">General Construction Field Report</h2>
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500">
-                <span><strong>Project:</strong> {content.projectName}</span>
-                <span><strong>Date:</strong> {content.date}</span>
-                <span><strong>Supervisor:</strong> {content.supervisor}</span>
-                {content.weather && <span><strong>Weather:</strong> {content.weather}</span>}
+                <span><strong>Project:</strong> {c.projectName}</span>
+                <span><strong>Date:</strong> {c.date}</span>
+                <span><strong>Supervisor:</strong> {c.supervisor}</span>
+                {c.weather && <span><strong>Weather:</strong> {c.weather}</span>}
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">Summary of Work</h3>
-              <p className="text-sm leading-relaxed text-gray-700">{content.summaryOfWork}</p>
-            </div>
-            <Section title="Labour" items={content.labour} />
-            <Section title="Subcontractors" items={content.subcontractors} />
-            <Section title="Equipment" items={content.equipment} />
-            <Section title="Materials Delivered" items={content.materialsDelivered} />
-            <Section title="Delays" items={content.delays} />
-            <Section title="Safety Observations" items={content.safetyObservations} />
-            <Section title="Quality Issues" items={content.qualityIssues} />
-            <Section title="Deficiencies" items={content.deficiencies} />
-            <Section title="Photos Referenced" items={content.photosReferenced} />
-            <Section title="Action Items" items={content.actionItems} />
-            {content.tomorrowsWork && (
-              <div>
-                <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">Tomorrow's Planned Work</h3>
-                <p className="text-sm text-gray-700">{content.tomorrowsWork}</p>
-              </div>
-            )}
-            <Section title="Possible Change Order Items" items={content.possibleChangeOrderItems} />
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-relaxed text-gray-700">{c.summaryOfWork}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Original transcript */}
-        {content.transcript && (
+        {c.transcript && (
           <Card>
             <CardHeader><CardTitle>Original Transcript</CardTitle></CardHeader>
             <CardContent>
-              <p className="text-sm leading-relaxed text-gray-600 whitespace-pre-wrap italic">&ldquo;{content.transcript}&rdquo;</p>
+              <p className="text-sm leading-relaxed text-gray-600 whitespace-pre-wrap italic">&ldquo;{c.transcript}&rdquo;</p>
             </CardContent>
           </Card>
         )}
