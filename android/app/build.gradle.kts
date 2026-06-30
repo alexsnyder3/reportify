@@ -17,7 +17,7 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        buildConfigField("String", "API_BASE_URL", "\"https://api.reportify.ca\"")
+        buildConfigField("String", "API_BASE_URL", "\"https://reportify-production-67e1.up.railway.app\"")
         buildConfigField("String", "API_BASE_URL_DEBUG", "\"http://10.0.2.2:3001\"")
     }
 
