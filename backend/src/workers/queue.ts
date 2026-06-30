@@ -29,11 +29,17 @@ export const QUEUE_NAMES = {
   JOB_DETECTION: 'job-detection',
 } as const;
 
+function makeQueue(name: string) {
+  const q = new Queue(name, { connection });
+  q.on('error', () => { /* suppress — Redis may be unavailable */ });
+  return q;
+}
+
 // Create queues
-export const transcriptionQueue = new Queue(QUEUE_NAMES.TRANSCRIPTION, { connection });
-export const photoAnalysisQueue = new Queue(QUEUE_NAMES.PHOTO_ANALYSIS, { connection });
-export const reportQueue = new Queue(QUEUE_NAMES.REPORT_GENERATION, { connection });
-export const jobDetectionQueue = new Queue(QUEUE_NAMES.JOB_DETECTION, { connection });
+export const transcriptionQueue = makeQueue(QUEUE_NAMES.TRANSCRIPTION);
+export const photoAnalysisQueue = makeQueue(QUEUE_NAMES.PHOTO_ANALYSIS);
+export const reportQueue = makeQueue(QUEUE_NAMES.REPORT_GENERATION);
+export const jobDetectionQueue = makeQueue(QUEUE_NAMES.JOB_DETECTION);
 
 export const defaultJobOptions = {
   attempts: 3,
