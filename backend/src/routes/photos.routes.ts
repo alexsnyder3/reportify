@@ -5,6 +5,7 @@ import { validate } from '../middleware/validate.js';
 import { prisma } from '../utils/prisma.js';
 import { getSignedDownloadUrl } from '../services/storage.service.js';
 import { NotFoundError } from '../utils/errors.js';
+import { photoAnalysisQueue, defaultJobOptions } from '../workers/queue.js';
 
 const router = Router();
 router.use(authenticate);
@@ -65,6 +66,32 @@ router.get('/:id/url', async (req: Request, res: Response, next: NextFunction) =
 
     const url = await getSignedDownloadUrl(photo.fileKey);
     res.json({ success: true, data: { url } });
+  } catch (err) { next(err); }
+});
+
+// POST /api/photos/retry-failed — re-queue all FAILED photos for the org
+router.post('/retry-failed', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const failed = await prisma.photo.findMany({
+      where: { organizationId: req.user!.orgId, status: 'FAILED', deletedAt: null, fileKey: { not: null } },
+      select: { id: true, fileKey: true, mimeType: true },
+    });
+
+    await prisma.photo.updateMany({
+      where: { id: { in: failed.map((p) => p.id) } },
+      data: { status: 'PENDING' },
+    });
+
+    for (const photo of failed) {
+      await photoAnalysisQueue.add('analyze', {
+        photoId: photo.id,
+        fileKey: photo.fileKey,
+        mimeType: photo.mimeType || 'image/jpeg',
+        orgId: req.user!.orgId,
+      }, defaultJobOptions);
+    }
+
+    res.json({ success: true, data: { queued: failed.length } });
   } catch (err) { next(err); }
 });
 

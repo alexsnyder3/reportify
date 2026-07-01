@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { formatDateTime } from '@/lib/utils';
-import { Camera } from 'lucide-react';
+import { Camera, RefreshCw } from 'lucide-react';
 
 interface Photo {
   id: string;
@@ -95,6 +95,8 @@ function PhotoCard({ photo }: { photo: Photo }) {
 
 export default function PhotosPage() {
   const [page, setPage] = useState(1);
+  const [retryMsg, setRetryMsg] = useState('');
+  const qc = useQueryClient();
 
   const { data, isLoading } = useQuery<{ photos: Photo[]; total: number; pages: number }>({
     queryKey: ['photos', page],
@@ -105,12 +107,39 @@ export default function PhotosPage() {
     refetchInterval: 15_000,
   });
 
+  const retryFailed = useMutation({
+    mutationFn: () => api.post('/api/photos/retry-failed'),
+    onSuccess: (res) => {
+      const count = res.data.data.queued;
+      setRetryMsg(count > 0 ? `Re-queued ${count} photo${count > 1 ? 's' : ''} — refresh in ~30s` : 'No failed photos to retry');
+      qc.invalidateQueries({ queryKey: ['photos'] });
+      setTimeout(() => setRetryMsg(''), 5000);
+    },
+  });
+
+  const failedCount = data?.photos.filter((p) => p.status === 'FAILED').length ?? 0;
+
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Photos</h1>
-          <p className="mt-0.5 text-sm text-gray-500">{data?.total ?? 0} photos from the field</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Photos</h1>
+            <p className="mt-0.5 text-sm text-gray-500">{data?.total ?? 0} photos from the field</p>
+          </div>
+          {failedCount > 0 && (
+            <div className="flex items-center gap-3">
+              {retryMsg && <span className="text-sm text-green-600">{retryMsg}</span>}
+              <button
+                onClick={() => retryFailed.mutate()}
+                disabled={retryFailed.isPending}
+                className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${retryFailed.isPending ? 'animate-spin' : ''}`} />
+                Retry {failedCount} failed
+              </button>
+            </div>
+          )}
         </div>
 
         {isLoading ? (
