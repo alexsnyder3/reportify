@@ -27,6 +27,7 @@ export const QUEUE_NAMES = {
   PHOTO_ANALYSIS: 'photo-analysis',
   REPORT_GENERATION: 'report-generation',
   JOB_DETECTION: 'job-detection',
+  DOCUMENT_ANALYSIS: 'document-analysis',
 } as const;
 
 function makeQueue(name: string) {
@@ -40,6 +41,7 @@ export const transcriptionQueue = makeQueue(QUEUE_NAMES.TRANSCRIPTION);
 export const photoAnalysisQueue = makeQueue(QUEUE_NAMES.PHOTO_ANALYSIS);
 export const reportQueue = makeQueue(QUEUE_NAMES.REPORT_GENERATION);
 export const jobDetectionQueue = makeQueue(QUEUE_NAMES.JOB_DETECTION);
+export const documentAnalysisQueue = makeQueue(QUEUE_NAMES.DOCUMENT_ANALYSIS);
 
 export const defaultJobOptions = {
   attempts: 3,

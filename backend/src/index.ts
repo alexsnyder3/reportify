@@ -19,6 +19,7 @@ import { ensureBucketExists } from './services/storage.service.js';
 import { startTranscriptionWorker } from './workers/transcription.worker.js';
 import { startPhotoAnalysisWorker } from './workers/photoAnalysis.worker.js';
 import { startReportWorker } from './workers/reportGeneration.worker.js';
+import { startDocumentAnalysisWorker } from './workers/documentAnalysis.worker.js';
 import { logger } from './utils/logger.js';
 import { prisma } from './utils/prisma.js';
 
@@ -31,6 +32,7 @@ import entryRoutes from './routes/entries.routes.js';
 import reportRoutes from './routes/reports.routes.js';
 import photoRoutes from './routes/photos.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
+import jobDocumentRoutes from './routes/jobDocuments.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -85,6 +87,7 @@ app.use('/api/entries', entryRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/photos', photoRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/job-documents', jobDocumentRoutes);
 
 // ─── Error Handling ──────────────────────────
 app.use(notFoundHandler);
@@ -110,6 +113,7 @@ async function start() {
       startTranscriptionWorker();
       startPhotoAnalysisWorker();
       startReportWorker();
+      startDocumentAnalysisWorker();
       logger.info('Background workers started');
     } catch (err) {
       logger.warn('Background workers failed to start — AI processing unavailable', { error: String(err) });

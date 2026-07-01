@@ -25,6 +25,7 @@ model Organization {
   photos      Photo[]
   reports     Report[]
   auditLogs   AuditLog[]
+  jobDocuments JobDocument[]
 
   @@map("organizations")
 }
@@ -113,9 +114,40 @@ model Job {
   entries      Entry[]
   photos       Photo[]
   reports      Report[]
+  documents    JobDocument[]
+
+  context      String?
 
   @@index([organizationId])
   @@map("jobs")
+}
+
+// ─────────────────────────────────────────────
+// JOB DOCUMENTS (drawings, specs, etc.)
+// ─────────────────────────────────────────────
+model JobDocument {
+  id             String    @id @default(uuid())
+  jobId          String    @map("job_id")
+  organizationId String    @map("organization_id")
+  fileName       String    @map("file_name")
+  fileKey        String    @map("file_key")
+  mimeType       String    @map("mime_type")
+  fileSizeBytes  Int?      @map("file_size_bytes")
+  status         DocStatus @default(PROCESSING)
+  extractedText  String?   @map("extracted_text")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  job          Job          @relation(fields: [jobId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([jobId])
+  @@map("job_documents")
+}
+
+enum DocStatus {
+  PROCESSING
+  READY
+  FAILED
 }
 
 // ─────────────────────────────────────────────

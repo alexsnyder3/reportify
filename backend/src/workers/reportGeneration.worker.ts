@@ -48,6 +48,7 @@ async function processReportGeneration(job: Job<ReportJobData>) {
   const jobProjectNumber = (entry.job as any)?.projectNumber || undefined;
   const latitude = entry.latitude || entry.job?.latitude || undefined;
   const longitude = entry.longitude || entry.job?.longitude || undefined;
+  const jobContext = (entry.job as any)?.context || undefined;
 
   try {
     const [supervisorResult, safetyResult] = await Promise.all([
@@ -61,6 +62,7 @@ async function processReportGeneration(job: Job<ReportJobData>) {
         projectNumber: jobProjectNumber,
         latitude,
         longitude,
+        jobContext,
       }),
       generateSafetyReport({
         transcript: entry.transcript.text,
@@ -72,6 +74,7 @@ async function processReportGeneration(job: Job<ReportJobData>) {
         projectNumber: jobProjectNumber,
         latitude,
         longitude,
+        jobContext,
       }),
     ]);
 

@@ -54,8 +54,12 @@ function buildSupervisorReportPrompt(params: {
   weather: string;
   temperature: string;
   photos: PhotoContext[];
+  jobContext?: string;
 }): string {
   const photoSection = buildPhotoSection(params.photos);
+  const contextSection = params.jobContext
+    ? `\nProject Documents & Specifications:\n${params.jobContext.slice(0, 4000)}\n`
+    : '';
 
   return `You are a construction site report writer for Snyder Construction. Extract information from the supervisor's voice transcript AND the attached site photo analysis to fill out a daily Supervisor's Report.
 
@@ -66,12 +70,12 @@ Supervisor: ${params.supervisorName}
 Date: ${params.date}
 Weather: ${params.weather}
 Temperature: ${params.temperature}
-${photoSection}
+${contextSection}${photoSection}
 
 Transcript:
 "${params.transcript}"
 
-Fill in the following report fields using BOTH the transcript and the photo analysis above. The photos provide visual evidence of site conditions — use them to supplement or confirm what was said in the transcript. Write natural, professional sentences. Do NOT use parenthetical source citations like "(photo:...)" or "(transcript:...)". Just state the findings directly as a professional report writer would. Use "N/A" for anything not mentioned in either source.
+Fill in the following report fields using the transcript, photo analysis, and project documents above. The photos provide visual evidence of site conditions — use them to supplement or confirm what was said in the transcript. Write natural, professional sentences. Do NOT use parenthetical source citations like "(photo:...)" or "(transcript:...)". Just state the findings directly as a professional report writer would. Use "N/A" for anything not mentioned in either source.
 
 Respond in JSON format:
 {
@@ -130,8 +134,12 @@ function buildSafetyReportPrompt(params: {
   weather: string;
   temperature: string;
   photos: PhotoContext[];
+  jobContext?: string;
 }): string {
   const photoSection = buildPhotoSection(params.photos);
+  const contextSection = params.jobContext
+    ? `\nProject Documents & Specifications:\n${params.jobContext.slice(0, 4000)}\n`
+    : '';
 
   return `You are a construction site safety inspector for Snyder Construction. Extract information from the supervisor's voice transcript AND the attached site photo analysis to fill out a monthly Job Operations and Conditions Safety Report (COR-style inspection checklist).
 
@@ -142,7 +150,7 @@ Supervisor: ${params.supervisorName}
 Date: ${params.date}
 Weather: ${params.weather}
 Temperature: ${params.temperature}
-${photoSection}
+${contextSection}${photoSection}
 
 Transcript:
 "${params.transcript}"
@@ -263,6 +271,7 @@ export async function generateSafetyReport(params: {
   projectNumber?: string;
   latitude?: number;
   longitude?: number;
+  jobContext?: string;
 }): Promise<{ content: SafetyReportContent; rawMarkdown: string }> {
   let weather = 'N/A';
   let temperature = 'N/A';
@@ -282,6 +291,7 @@ export async function generateSafetyReport(params: {
     weather,
     temperature,
     photos: params.photos || [],
+    jobContext: params.jobContext,
   });
 
   const extracted = await callDeepSeekJSON(prompt);
@@ -402,6 +412,7 @@ export async function generateFieldReport(params: {
   projectNumber?: string;
   latitude?: number;
   longitude?: number;
+  jobContext?: string;
 }): Promise<{ content: SupervisorReportContent; rawMarkdown: string }> {
   let weather = 'N/A';
   let temperature = 'N/A';
@@ -421,6 +432,7 @@ export async function generateFieldReport(params: {
     weather,
     temperature,
     photos: params.photos || [],
+    jobContext: params.jobContext,
   });
 
   const extracted = await callDeepSeekJSON(prompt) as Partial<SupervisorReportContent>;
