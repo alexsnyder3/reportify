@@ -30,12 +30,14 @@ Respond in JSON format only:
 
 safetyFlags should be an empty array if there are no concerns.`;
 
-export async function analyzePhoto(imageBuffer: Buffer, mimeType = 'image/jpeg'): Promise<PhotoAnalysisResult> {
+export async function analyzePhoto(imageBuffer: Buffer, mimeType = 'image/jpeg', imageUrl?: string): Promise<PhotoAnalysisResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new AppError('OpenAI API key not configured', 500);
 
-  const base64Image = imageBuffer.toString('base64');
-  const dataUrl = `data:${mimeType};base64,${base64Image}`;
+  // Prefer a direct URL (avoids large base64 payloads); fall back to base64
+  const imageSource = imageUrl
+    ? { url: imageUrl, detail: 'low' as const }
+    : { url: `data:${mimeType};base64,${imageBuffer.toString('base64')}`, detail: 'low' as const };
 
   const body = {
     model: 'gpt-4o-mini',
@@ -45,7 +47,7 @@ export async function analyzePhoto(imageBuffer: Buffer, mimeType = 'image/jpeg')
         content: [
           {
             type: 'image_url',
-            image_url: { url: dataUrl, detail: 'low' },
+            image_url: imageSource,
           },
           {
             type: 'text',

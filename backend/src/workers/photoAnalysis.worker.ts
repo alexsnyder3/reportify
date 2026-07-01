@@ -23,7 +23,9 @@ async function processPhotoAnalysis(job: Job<PhotoAnalysisJobData>) {
     if (!res.ok) throw new Error('Failed to download photo');
     const buffer = Buffer.from(await res.arrayBuffer());
 
-    const analysis = await analyzePhoto(buffer, mimeType);
+    // Pass the signed URL directly so OpenAI fetches it instead of receiving a large base64 payload
+    const freshUrl = await getSignedDownloadUrl(fileKey);
+    const analysis = await analyzePhoto(buffer, mimeType, freshUrl);
 
     await prisma.photoAnalysis.upsert({
       where: { photoId },
