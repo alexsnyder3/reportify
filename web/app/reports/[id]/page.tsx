@@ -91,9 +91,10 @@ export default function ReportDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
 
-  const { data: report, isLoading } = useQuery({
+  const { data: report, isLoading, isError } = useQuery({
     queryKey: ['report', id],
     queryFn: async () => { const res = await api.get(`/api/reports/${id}`); return res.data.data; },
+    retry: false,
   });
 
   const updateStatus = useMutation({
@@ -101,8 +102,20 @@ export default function ReportDetailPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['report', id] }),
   });
 
-  if (isLoading) return <AppLayout><div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" /></div></AppLayout>;
-  if (!report) return <AppLayout><p className="text-red-600">Report not found</p></AppLayout>;
+  if (isLoading) return <AppLayout><div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" /></div></AppLayout>;
+
+  if (isError || !report) return (
+    <AppLayout>
+      <div className="flex flex-col items-center py-24 text-center">
+        <p className="text-lg font-semibold text-gray-900 mb-2">Report not found</p>
+        <p className="text-sm text-gray-500 mb-6">This report may have been deleted or is still being regenerated.<br />New reports usually take 20–30 seconds to appear.</p>
+        <div className="flex gap-3">
+          <Link href="/reports"><Button variant="secondary">View All Reports</Button></Link>
+          <Link href="/activity"><Button>Go to Activity</Button></Link>
+        </div>
+      </div>
+    </AppLayout>
+  );
 
   const c = report.content as SupervisorReportContent;
   const isSafetyReport = report.type === 'SAFETY_REPORT';

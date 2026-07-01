@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import Image from 'next/image';
@@ -41,6 +41,7 @@ function PhotoThumbnail({ photoId, analysis }: { photoId: string; analysis?: str
 export default function EntryDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
+  const router = useRouter();
   const [reassigning, setReassigning] = useState(false);
   const [regenMsg, setRegenMsg] = useState('');
 
@@ -62,8 +63,8 @@ export default function EntryDetailPage() {
   const regenerate = useMutation({
     mutationFn: () => api.post(`/api/entries/${id}/regenerate`),
     onSuccess: () => {
-      setRegenMsg('Reports regenerating — refresh in ~30 seconds');
       qc.invalidateQueries({ queryKey: ['entry', id] });
+      router.push(`/reports?regen=1`);
     },
     onError: () => setRegenMsg('Failed to queue regeneration'),
   });

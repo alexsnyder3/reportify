@@ -29,6 +29,7 @@ const TYPE_FILTERS = [
 function ReportsContent() {
   const searchParams = useSearchParams();
   const jobId = searchParams.get('jobId') || undefined;
+  const isRegen = searchParams.get('regen') === '1';
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState('');
 
@@ -40,10 +41,17 @@ function ReportsContent() {
       });
       return res.data.data;
     },
+    refetchInterval: isRegen ? 5_000 : false,
   });
 
   return (
     <div className="space-y-6">
+      {isRegen && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          ⏳ Reports are being regenerated — they'll appear here in about 30 seconds. This page refreshes automatically.
+        </div>
+      )}
+
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
