@@ -44,17 +44,21 @@ async function processPhotoAnalysis(job: Job<PhotoAnalysisJobData>) {
 
     await prisma.photo.update({ where: { id: photoId }, data: { status: 'ANALYZED' } });
 
-    // Link photo to nearby entries (same user, same job, within 2 hours)
+    // Link photo to nearby entries from the same user within ±24 hours.
+    // We intentionally do NOT require jobId to match — GPS may not have
+    // detected the job when the photo was taken.
     const photo = await prisma.photo.findUnique({ where: { id: photoId } });
-    if (photo?.jobId && photo.userId) {
-      const twoHoursAgo = new Date(photo.takenAt.getTime() - 2 * 60 * 60 * 1000);
-      const twoHoursAhead = new Date(photo.takenAt.getTime() + 2 * 60 * 60 * 1000);
+    if (photo?.userId) {
+      const window = 24 * 60 * 60 * 1000; // 24 hours
+      const windowStart = new Date(photo.takenAt.getTime() - window);
+      const windowEnd = new Date(photo.takenAt.getTime() + window);
 
       const nearbyEntries = await prisma.entry.findMany({
         where: {
           userId: photo.userId,
-          jobId: photo.jobId,
-          recordedAt: { gte: twoHoursAgo, lte: twoHoursAhead },
+          organizationId: orgId,
+          recordedAt: { gte: windowStart, lte: windowEnd },
+          deletedAt: null,
         },
       });
 
@@ -65,6 +69,7 @@ async function processPhotoAnalysis(job: Job<PhotoAnalysisJobData>) {
           update: {},
         });
       }
+      logger.info('Linked photo to entries', { photoId, count: nearbyEntries.length });
     }
 
     logger.info('Photo analysis complete', { photoId });

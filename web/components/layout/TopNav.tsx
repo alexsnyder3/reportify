@@ -5,13 +5,14 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth, useLogout } from '@/lib/hooks/useAuth';
-import { Briefcase, Users, FileText, Settings, LogOut, Activity, ChevronDown } from 'lucide-react';
+import { Briefcase, Users, FileText, Settings, LogOut, Activity, ChevronDown, Camera } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 const navItems = [
   { href: '/jobs', label: 'Jobs', icon: Briefcase },
   { href: '/activity', label: 'Activity', icon: Activity },
   { href: '/reports', label: 'Reports', icon: FileText },
+  { href: '/photos', label: 'Photos', icon: Camera },
   { href: '/users', label: 'Users', icon: Users, adminOnly: true },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
