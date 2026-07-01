@@ -112,7 +112,7 @@ router.patch('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Re
 });
 
 // DELETE /api/reports/:id  (soft delete)
-router.delete('/:id', authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
+router.delete('/:id', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const report = await prisma.report.findFirst({
       where: { id: String(req.params.id), organizationId: req.user!.orgId },
