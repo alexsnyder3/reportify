@@ -9,6 +9,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,9 +47,9 @@ fun CameraScreen(
     viewModel: CameraViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
-    var photoFile by remember { mutableStateOf<File?>(null) }
-    var previewBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
-    var captureSuccess by remember { mutableStateOf(false) }
+    var pendingCameraFile by remember { mutableStateOf<File?>(null) }
+    var savedPhotos by remember { mutableStateOf<List<ImageBitmap>>(emptyList()) }
+    var savedCount by remember { mutableStateOf(0) }
     var permissionDenied by remember { mutableStateOf(false) }
 
     fun createTempFile(): Pair<File, Uri> {
@@ -58,55 +60,54 @@ fun CameraScreen(
         return file to uri
     }
 
-    fun loadPreview(file: File) {
-        previewBitmap = BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
+    fun addPreview(file: File) {
+        val bmp = BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap() ?: return
+        savedPhotos = savedPhotos + bmp
+        savedCount = savedPhotos.size
     }
 
-    // System camera — saves full-resolution JPEG to our URI
+    // System camera — one shot, but user can tap Camera again for more
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
         if (success) {
-            val file = photoFile ?: return@rememberLauncherForActivityResult
-            loadPreview(file)
+            val file = pendingCameraFile ?: return@rememberLauncherForActivityResult
+            addPreview(file)
             viewModel.savePhoto(file)
-            captureSuccess = true
             permissionDenied = false
         }
     }
 
-    // Gallery picker — copies selected image into our app storage then saves
+    // Gallery — allows selecting multiple images at once
     val galleryLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        if (uris.isEmpty()) return@rememberLauncherForActivityResult
         val dir = File(context.getExternalFilesDir("Pictures"), "").also { it.mkdirs() }
-        val destFile = File(dir, "GALLERY_${timeStamp}.jpg")
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            FileOutputStream(destFile).use { output -> input.copyTo(output) }
+        uris.forEach { uri ->
+            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(Date())
+            val destFile = File(dir, "GALLERY_${timeStamp}.jpg")
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(destFile).use { output -> input.copyTo(output) }
+            }
+            addPreview(destFile)
+            viewModel.savePhoto(destFile)
         }
-        photoFile = destFile
-        loadPreview(destFile)
-        viewModel.savePhoto(destFile)
-        captureSuccess = true
         permissionDenied = false
     }
 
-    // Camera permission launcher
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
             val (file, uri) = createTempFile()
-            photoFile = file
+            pendingCameraFile = file
             cameraLauncher.launch(uri)
         } else {
             permissionDenied = true
         }
     }
 
-    // Gallery permission launcher (only needed on Android 12 and below)
     val galleryPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -114,9 +115,12 @@ fun CameraScreen(
         else permissionDenied = true
     }
 
+    fun openCamera() {
+        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+    }
+
     fun openGallery() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+ — READ_MEDIA_IMAGES; launcher handles permission inline
             galleryLauncher.launch("image/*")
         } else {
             galleryPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -149,7 +153,7 @@ fun CameraScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
 
-            // Preview area
+            // Preview strip — scrollable row of thumbnails
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -158,31 +162,42 @@ fun CameraScreen(
                     .background(Color(0xFF1F2937)),
                 contentAlignment = Alignment.Center,
             ) {
-                if (previewBitmap != null) {
-                    Image(
-                        bitmap = previewBitmap!!,
-                        contentDescription = "Photo preview",
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else {
+                if (savedPhotos.isEmpty()) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Color(0xFF374151), modifier = Modifier.size(64.dp))
                         Text(
-                            "Take a photo or choose\none from your gallery",
+                            "Take photos or choose\nfrom your gallery",
                             color = Color(0xFF6B7280),
                             fontSize = 15.sp,
                             textAlign = TextAlign.Center,
                         )
                     }
+                } else {
+                    LazyRow(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        contentPadding = PaddingValues(4.dp),
+                    ) {
+                        items(savedPhotos) { bmp ->
+                            Image(
+                                bitmap = bmp,
+                                contentDescription = "Photo",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(12.dp)),
+                            )
+                        }
+                    }
                 }
             }
 
-            // Success banner
-            if (captureSuccess) {
+            // Count / success banner
+            if (savedCount > 0) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -193,7 +208,11 @@ fun CameraScreen(
                         .padding(12.dp),
                 ) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981))
-                    Text("Photo saved — will upload automatically when online", color = Color(0xFF10B981), fontSize = 13.sp)
+                    Text(
+                        "$savedCount photo${if (savedCount == 1) "" else "s"} queued — will upload automatically when online",
+                        color = Color(0xFF10B981),
+                        fontSize = 13.sp,
+                    )
                 }
             }
 
@@ -206,14 +225,13 @@ fun CameraScreen(
                 )
             }
 
-            // Two action buttons side by side
+            // Action buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // Camera button
                 Button(
-                    onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
+                    onClick = { openCamera() },
                     modifier = Modifier.weight(1f).height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
@@ -223,7 +241,6 @@ fun CameraScreen(
                     Text("Camera", fontWeight = FontWeight.SemiBold)
                 }
 
-                // Gallery button
                 OutlinedButton(
                     onClick = { openGallery() },
                     modifier = Modifier.weight(1f).height(56.dp),
