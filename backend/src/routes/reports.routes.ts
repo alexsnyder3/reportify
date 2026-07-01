@@ -11,6 +11,7 @@ router.use(authenticate);
 const listSchema = z.object({
   jobId: z.string().uuid().optional(),
   userId: z.string().uuid().optional(),
+  type: z.string().optional(),
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
 });
@@ -18,7 +19,7 @@ const listSchema = z.object({
 // GET /api/reports
 router.get('/', validate(listSchema, 'query'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { jobId, userId, page, limit } = req.query as unknown as z.infer<typeof listSchema>;
+    const { jobId, userId, type, page, limit } = req.query as unknown as z.infer<typeof listSchema>;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where = {
@@ -26,6 +27,7 @@ router.get('/', validate(listSchema, 'query'), async (req: Request, res: Respons
       deletedAt: null,
       ...(jobId && { jobId }),
       ...(userId && { userId }),
+      ...(type && { type: type as any }),
     };
 
     const [reports, total] = await Promise.all([
