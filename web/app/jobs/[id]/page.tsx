@@ -4,11 +4,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { geocodeAddress } from '@/lib/geocode';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, MapPin } from 'lucide-react';
 import Link from 'next/link';
 
 export default function EditJobPage() {
@@ -16,6 +17,8 @@ export default function EditJobPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const [error, setError] = useState('');
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeMsg, setGeocodeMsg] = useState('');
   const [form, setForm] = useState({ name: '', address: '', projectNumber: '', latitude: '', longitude: '', radiusMeters: '200', notes: '', isActive: true });
 
   const { data: job } = useQuery({
@@ -40,6 +43,20 @@ export default function EditJobPage() {
 
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  async function autoFillCoords() {
+    if (!form.address.trim()) return;
+    setGeocoding(true);
+    setGeocodeMsg('');
+    const result = await geocodeAddress(form.address);
+    setGeocoding(false);
+    if (result) {
+      setForm((f) => ({ ...f, latitude: result.lat, longitude: result.lon }));
+      setGeocodeMsg('Coordinates auto-filled from address');
+    } else {
+      setGeocodeMsg('Address not found — enter coordinates manually');
+    }
+  }
 
   const update = useMutation({
     mutationFn: () =>
@@ -72,7 +89,27 @@ export default function EditJobPage() {
           <CardContent>
             <form onSubmit={(e) => { e.preventDefault(); update.mutate(); }} className="space-y-4">
               <Input label="Job Name *" value={form.name} onChange={set('name')} required />
-              <Input label="Address" value={form.address} onChange={set('address')} />
+
+              <div className="space-y-2">
+                <Input label="Address" value={form.address} onChange={set('address')} onBlur={autoFillCoords} />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={autoFillCoords}
+                  loading={geocoding}
+                  disabled={!form.address.trim() || geocoding}
+                >
+                  <MapPin className="mr-1.5 h-3.5 w-3.5" />
+                  Auto-detect GPS from address
+                </Button>
+                {geocodeMsg && (
+                  <p className={`text-xs ${geocodeMsg.includes('not found') ? 'text-amber-600' : 'text-green-600'}`}>
+                    {geocodeMsg}
+                  </p>
+                )}
+              </div>
+
               <Input label="Project Number" value={form.projectNumber} onChange={set('projectNumber')} placeholder="25-160" />
               <div className="grid grid-cols-2 gap-4">
                 <Input label="Latitude" type="number" step="any" value={form.latitude} onChange={set('latitude')} />

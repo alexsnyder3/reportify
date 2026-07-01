@@ -4,17 +4,20 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { geocodeAddress } from '@/lib/geocode';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, MapPin } from 'lucide-react';
 import Link from 'next/link';
 
 export default function NewJobPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const [error, setError] = useState('');
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeMsg, setGeocodeMsg] = useState('');
 
   const [form, setForm] = useState({
     name: '',
@@ -28,6 +31,20 @@ export default function NewJobPage() {
 
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  async function autoFillCoords() {
+    if (!form.address.trim()) return;
+    setGeocoding(true);
+    setGeocodeMsg('');
+    const result = await geocodeAddress(form.address);
+    setGeocoding(false);
+    if (result) {
+      setForm((f) => ({ ...f, latitude: result.lat, longitude: result.lon }));
+      setGeocodeMsg('Coordinates auto-filled from address');
+    } else {
+      setGeocodeMsg('Address not found — enter coordinates manually');
+    }
+  }
 
   const create = useMutation({
     mutationFn: () =>
@@ -64,7 +81,33 @@ export default function NewJobPage() {
           <CardContent>
             <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }} className="space-y-4">
               <Input label="Job Name *" value={form.name} onChange={set('name')} required placeholder="Downtown Office Tower" />
-              <Input label="Address" value={form.address} onChange={set('address')} placeholder="123 Main Street, Vancouver, BC" />
+
+              <div className="space-y-2">
+                <Input
+                  label="Address"
+                  value={form.address}
+                  onChange={set('address')}
+                  onBlur={autoFillCoords}
+                  placeholder="123 Main Street, Vancouver, BC"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={autoFillCoords}
+                  loading={geocoding}
+                  disabled={!form.address.trim() || geocoding}
+                >
+                  <MapPin className="mr-1.5 h-3.5 w-3.5" />
+                  Auto-detect GPS from address
+                </Button>
+                {geocodeMsg && (
+                  <p className={`text-xs ${geocodeMsg.includes('not found') ? 'text-amber-600' : 'text-green-600'}`}>
+                    {geocodeMsg}
+                  </p>
+                )}
+              </div>
+
               <Input label="Project Number" value={form.projectNumber} onChange={set('projectNumber')} placeholder="25-160" />
 
               <div className="grid grid-cols-2 gap-4">
@@ -97,13 +140,6 @@ export default function NewJobPage() {
             </form>
           </CardContent>
         </Card>
-
-        <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
-          <p className="text-sm font-medium text-blue-900">💡 Getting GPS coordinates</p>
-          <p className="mt-1 text-sm text-blue-700">
-            Go to Google Maps, right-click the job site, and click the coordinates at the top of the menu to copy them. Paste the latitude and longitude here.
-          </p>
-        </div>
       </div>
     </AppLayout>
   );
