@@ -40,6 +40,7 @@ model User {
   firstName      String   @map("first_name")
   lastName       String   @map("last_name")
   role           UserRole @default(SUPERVISOR)
+  phone          String?
   isActive       Boolean  @default(true) @map("is_active")
   lastLoginAt    DateTime? @map("last_login_at")
   createdAt      DateTime @default(now()) @map("created_at")

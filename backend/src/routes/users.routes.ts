@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import bcrypt from 'bcryptjs';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { prisma } from '../utils/prisma.js';
@@ -30,7 +31,7 @@ router.get('/', authorize('ADMIN', 'MANAGER'), async (req: Request, res: Respons
       where: { organizationId: req.user!.orgId, deletedAt: null },
       select: {
         id: true, email: true, firstName: true, lastName: true,
-        role: true, isActive: true, lastLoginAt: true, createdAt: true,
+        role: true, phone: true, isActive: true, lastLoginAt: true, createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -74,6 +75,38 @@ router.delete('/invites/:id', authorize('ADMIN'), async (req: Request, res: Resp
   try {
     await revokeInvite(req.user!.orgId, String(req.params.id));
     res.json({ success: true });
+  } catch (err) { next(err); }
+});
+
+const updateUserSchema = z.object({
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  role: z.enum(['ADMIN', 'MANAGER', 'SUPERVISOR']).optional(),
+  password: z.string().min(8).optional(),
+});
+
+// PATCH /api/users/:id  (edit profile, name, email, phone, role, password)
+router.patch('/:id', authorize('ADMIN'), validate(updateUserSchema), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = await prisma.user.findFirst({
+      where: { id: String(req.params.id), organizationId: req.user!.orgId },
+    });
+    if (!user) throw new NotFoundError('User');
+
+    const { password, ...rest } = req.body as z.infer<typeof updateUserSchema>;
+    const data: Record<string, unknown> = { ...rest };
+    if (password) {
+      data.passwordHash = await bcrypt.hash(password, 12);
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: String(req.params.id) },
+      data,
+      select: { id: true, email: true, firstName: true, lastName: true, role: true, phone: true, isActive: true, lastLoginAt: true },
+    });
+    res.json({ success: true, data: updated });
   } catch (err) { next(err); }
 });
 
