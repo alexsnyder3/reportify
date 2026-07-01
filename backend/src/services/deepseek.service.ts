@@ -71,7 +71,7 @@ ${photoSection}
 Transcript:
 "${params.transcript}"
 
-Fill in the following report fields using BOTH the transcript and the photo analysis above. The photos provide visual evidence of site conditions — use them to supplement or confirm what was said in the transcript. Use "N/A" for anything not mentioned in either source. For yes/no questions, answer "Yes" or "No" followed by any relevant details.
+Fill in the following report fields using BOTH the transcript and the photo analysis above. The photos provide visual evidence of site conditions — use them to supplement or confirm what was said in the transcript. Write natural, professional sentences. Do NOT use parenthetical source citations like "(photo:...)" or "(transcript:...)". Just state the findings directly as a professional report writer would. Use "N/A" for anything not mentioned in either source.
 
 Respond in JSON format:
 {
@@ -147,11 +147,11 @@ ${photoSection}
 Transcript:
 "${params.transcript}"
 
-For each of the 15 safety checklist items below, answer using BOTH the transcript and the photo analysis:
+For each of the 15 safety checklist items below, answer using BOTH the transcript and the photo analysis. Write natural, professional sentences — do NOT use parenthetical source citations like "(photo:...)" or "(transcript:...)". Just state the finding directly.
 - Default to "Yes" (adequate/passing) if neither source indicates a problem.
-- Answer "No" if the transcript OR a photo safety flag describes a deficiency or hazard with that item — include the source in parentheses e.g. "No (photo: unsecured ladder visible)".
+- Answer "No" followed by a brief description of the issue if the transcript or photos reveal a deficiency. E.g. "No — scattered mortar bags and unsecured materials observed in storage container."
 - Answer "N/A" if the item clearly does not apply to this site.
-- If photos show evidence relevant to an item (e.g. PPE worn, equipment present), mention it.
+- If photos confirm something is adequate (PPE being worn, equipment properly parked), you may say "Yes — [brief observation]".
 
 Respond in JSON format:
 {
