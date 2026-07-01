@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 
 export const ACCENT_COLORS = [
+  { name: 'S2S Brown', value: '#8B6F47' },
   { name: 'Green', value: '#16a34a' },
   { name: 'Blue', value: '#2563eb' },
   { name: 'Orange', value: '#ea580c' },
@@ -12,7 +13,7 @@ export const ACCENT_COLORS = [
   { name: 'Slate', value: '#475569' },
 ];
 
-export const DEFAULT_ACCENT = '#16a34a';
+export const DEFAULT_ACCENT = '#8B6F47';
 export const STORAGE_KEY = 'reportify_accent';
 
 export function getAccentColor(): string {
