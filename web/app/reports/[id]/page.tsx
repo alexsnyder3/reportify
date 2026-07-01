@@ -2,13 +2,16 @@
 
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { statusColors } from '@/lib/utils';
-import { ArrowLeft, Printer } from 'lucide-react';
+import { ArrowLeft, Printer, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface SupervisorReportContent {
@@ -87,9 +90,36 @@ function ChecklistItem({ number, label, value }: { number: number; label: string
   );
 }
 
+function PhotoThumbnail({ photoId, analysis }: { photoId: string; analysis?: string }) {
+  const { data: url } = useQuery({
+    queryKey: ['photo-url', photoId],
+    queryFn: async () => { const res = await api.get(`/api/photos/${photoId}/url`); return res.data.data.url as string; },
+    staleTime: 4 * 60 * 1000,
+  });
+
+  return (
+    <div className="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 print:rounded-none">
+      {url ? (
+        <Image src={url} alt="Site photo" fill className="object-cover" unoptimized />
+      ) : (
+        <div className="flex h-full items-center justify-center">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-[var(--accent)]" />
+        </div>
+      )}
+      {analysis && (
+        <div className="absolute inset-x-0 bottom-0 hidden bg-black/60 p-2 group-hover:block print:block print:bg-transparent print:p-0 print:relative print:text-gray-600">
+          <p className="text-xs text-white line-clamp-3 print:text-gray-700">{analysis}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ReportDetailPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
+  const router = useRouter();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data: report, isLoading, isError } = useQuery({
     queryKey: ['report', id],
@@ -100,6 +130,11 @@ export default function ReportDetailPage() {
   const updateStatus = useMutation({
     mutationFn: (status: string) => api.patch(`/api/reports/${id}`, { status }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['report', id] }),
+  });
+
+  const deleteReport = useMutation({
+    mutationFn: () => api.delete(`/api/reports/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['reports'] }); router.push('/reports'); },
   });
 
   if (isLoading) return <AppLayout><div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" /></div></AppLayout>;
@@ -119,6 +154,11 @@ export default function ReportDetailPage() {
 
   const c = report.content as SupervisorReportContent;
   const isSafetyReport = report.type === 'SAFETY_REPORT';
+
+  type EntryPhoto = { photo: { id: string; analysis?: { description: string } } };
+  const allPhotos: EntryPhoto[] = (report.entries ?? []).flatMap(
+    (re: { entry: { photos?: EntryPhoto[] } }) => re.entry?.photos ?? []
+  );
   const isSnyderFormat = !!(c.inspectionsToday || c.generalNotes || c.toolboxTalk);
 
   const checklistItems: Array<{ number: number; label: string; key: keyof SupervisorReportContent }> = [
@@ -153,6 +193,17 @@ export default function ReportDetailPage() {
             <Button variant="secondary" size="sm" onClick={() => window.print()}>
               <Printer className="mr-1.5 h-3.5 w-3.5" />Print / PDF
             </Button>
+            {confirmDelete ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">Delete this report?</span>
+                <Button size="sm" variant="danger" onClick={() => deleteReport.mutate()} loading={deleteReport.isPending}>Yes, delete</Button>
+                <Button size="sm" variant="secondary" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(true)} className="text-gray-400 hover:text-red-600 hover:bg-red-50">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 
@@ -265,6 +316,20 @@ export default function ReportDetailPage() {
             <CardHeader><CardTitle>Original Transcript</CardTitle></CardHeader>
             <CardContent>
               <p className="text-sm leading-relaxed text-gray-600 whitespace-pre-wrap italic">&ldquo;{c.transcript}&rdquo;</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Site Photos */}
+        {allPhotos.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle>Site Photos ({allPhotos.length})</CardTitle></CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {allPhotos.map((ep) => (
+                  <PhotoThumbnail key={ep.photo.id} photoId={ep.photo.id} analysis={ep.photo.analysis?.description} />
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}

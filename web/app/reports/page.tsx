@@ -1,12 +1,12 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Badge } from '@/components/ui/badge';
 import { formatDateTime, statusColors } from '@/lib/utils';
-import { FileText } from 'lucide-react';
+import { FileText, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, Suspense } from 'react';
 
@@ -32,6 +32,13 @@ function ReportsContent() {
   const isRegen = searchParams.get('regen') === '1';
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const qc = useQueryClient();
+
+  const deleteReport = useMutation({
+    mutationFn: (id: string) => api.delete(`/api/reports/${id}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['reports'] }); setConfirmDelete(null); },
+  });
 
   const { data, isLoading } = useQuery<{ reports: Report[]; total: number; pages?: number }>({
     queryKey: ['reports', page, jobId, typeFilter],
@@ -92,35 +99,55 @@ function ReportsContent() {
         <>
           <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-100 overflow-hidden">
             {data.reports.map((report) => (
-              <Link
-                key={report.id}
-                href={`/reports/${report.id}`}
-                className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                  report.type === 'SAFETY_REPORT' ? 'bg-orange-50' : 'bg-green-50'
-                }`}>
-                  <FileText className={`h-4 w-4 ${report.type === 'SAFETY_REPORT' ? 'text-orange-500' : 'text-green-600'}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-gray-900 text-sm truncate">{report.title}</p>
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                      report.type === 'SAFETY_REPORT'
-                        ? 'bg-orange-100 text-orange-700'
-                        : 'bg-green-100 text-green-700'
-                    }`}>
-                      {report.type === 'SAFETY_REPORT' ? 'Safety' : 'Supervisor'}
-                    </span>
+              <div key={report.id} className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors group">
+                <Link href={`/reports/${report.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                    report.type === 'SAFETY_REPORT' ? 'bg-orange-50' : 'bg-green-50'
+                  }`}>
+                    <FileText className={`h-4 w-4 ${report.type === 'SAFETY_REPORT' ? 'text-orange-500' : 'text-green-600'}`} />
                   </div>
-                  <p className="text-sm text-gray-500">
-                    {report.user.firstName} {report.user.lastName}
-                    {report.job && ` · ${report.job.name}`}
-                  </p>
-                  <p className="text-xs text-gray-400">{formatDateTime(report.createdAt)}</p>
-                </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-gray-900 text-sm truncate">{report.title}</p>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                        report.type === 'SAFETY_REPORT'
+                          ? 'bg-orange-100 text-orange-700'
+                          : 'bg-green-100 text-green-700'
+                      }`}>
+                        {report.type === 'SAFETY_REPORT' ? 'Safety' : 'Supervisor'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      {report.user.firstName} {report.user.lastName}
+                      {report.job && ` · ${report.job.name}`}
+                    </p>
+                    <p className="text-xs text-gray-400">{formatDateTime(report.createdAt)}</p>
+                  </div>
+                </Link>
                 <Badge className={statusColors[report.status]}>{report.status}</Badge>
-              </Link>
+                {confirmDelete === report.id ? (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-gray-500">Delete?</span>
+                    <button
+                      onClick={() => deleteReport.mutate(report.id)}
+                      disabled={deleteReport.isPending}
+                      className="rounded px-2 py-1 text-xs font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                    >Yes</button>
+                    <button
+                      onClick={() => setConfirmDelete(null)}
+                      className="rounded px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    >No</button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={(e) => { e.preventDefault(); setConfirmDelete(report.id); }}
+                    className="shrink-0 opacity-0 group-hover:opacity-100 rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-all"
+                    title="Delete report"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
 
