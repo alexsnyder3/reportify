@@ -1,6 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { prisma } from '../utils/prisma.js';
-import { generateFieldReport, generateSafetyReport } from '../services/deepseek.service.js';
+import { generateFieldReport, generateSafetyReport, PhotoContext } from '../services/deepseek.service.js';
 import { connection, QUEUE_NAMES } from './queue.js';
 import { logger } from '../utils/logger.js';
 
@@ -32,9 +32,13 @@ async function processReportGeneration(job: Job<ReportJobData>) {
     return;
   }
 
-  const photoDescriptions = entry.photos
-    .map((ep) => ep.photo.analysis?.description)
-    .filter(Boolean) as string[];
+  const photos: PhotoContext[] = entry.photos
+    .filter((ep) => ep.photo.analysis)
+    .map((ep) => ({
+      description: ep.photo.analysis!.description,
+      tags: ep.photo.analysis!.tags ?? [],
+      safetyFlags: ep.photo.analysis!.safetyFlags ?? [],
+    }));
 
   const projectName = entry.job?.name || 'Unassigned Project';
   const supervisorName = `${entry.user.firstName} ${entry.user.lastName}`;
@@ -52,7 +56,7 @@ async function processReportGeneration(job: Job<ReportJobData>) {
         projectName,
         supervisorName,
         date,
-        photoDescriptions,
+        photos,
         jobAddress,
         projectNumber: jobProjectNumber,
         latitude,
@@ -63,6 +67,7 @@ async function processReportGeneration(job: Job<ReportJobData>) {
         projectName,
         supervisorName,
         date,
+        photos,
         jobAddress,
         projectNumber: jobProjectNumber,
         latitude,

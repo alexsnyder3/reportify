@@ -27,6 +27,23 @@ export interface SupervisorReportContent {
   transcript: string;
 }
 
+export interface PhotoContext {
+  description: string;
+  tags: string[];
+  safetyFlags: string[];
+}
+
+function buildPhotoSection(photos: PhotoContext[]): string {
+  if (!photos.length) return '';
+  const lines = photos.map((p, i) => {
+    const parts = [`Photo ${i + 1}: ${p.description}`];
+    if (p.tags.length) parts.push(`  Tags: ${p.tags.join(', ')}`);
+    if (p.safetyFlags.length) parts.push(`  ⚠ Safety flags: ${p.safetyFlags.join(', ')}`);
+    return parts.join('\n');
+  });
+  return `\nSite Photos (${photos.length} photos analyzed by AI vision):\n${lines.join('\n\n')}`;
+}
+
 function buildSupervisorReportPrompt(params: {
   transcript: string;
   jobName: string;
@@ -36,13 +53,11 @@ function buildSupervisorReportPrompt(params: {
   date: string;
   weather: string;
   temperature: string;
-  photoDescriptions: string[];
+  photos: PhotoContext[];
 }): string {
-  const photoSection = params.photoDescriptions.length
-    ? `\nPhotos taken at this site:\n${params.photoDescriptions.map((d, i) => `Photo ${i + 1}: ${d}`).join('\n')}`
-    : '';
+  const photoSection = buildPhotoSection(params.photos);
 
-  return `You are a construction site report writer for Snyder Construction. Extract information from the supervisor's voice transcript to fill out a daily Supervisor's Report.
+  return `You are a construction site report writer for Snyder Construction. Extract information from the supervisor's voice transcript AND the attached site photo analysis to fill out a daily Supervisor's Report.
 
 Job Name: ${params.jobName}
 Job Address: ${params.jobAddress}
@@ -56,20 +71,22 @@ ${photoSection}
 Transcript:
 "${params.transcript}"
 
-Fill in the following report fields based ONLY on what is mentioned in the transcript. Use "N/A" for anything not mentioned. For yes/no questions, answer "Yes" or "No" followed by any relevant details from the transcript.
+Fill in the following report fields using BOTH the transcript and the photo analysis above. The photos provide visual evidence of site conditions — use them to supplement or confirm what was said in the transcript. Use "N/A" for anything not mentioned in either source. For yes/no questions, answer "Yes" or "No" followed by any relevant details.
 
 Respond in JSON format:
 {
   "inspectionsToday": "List any inspections mentioned, or 'None'",
-  "generalNotes": "Summary of work performed today based on the transcript",
+  "generalNotes": "Summary of work performed today — combine transcript and photo evidence",
+  "equipmentOnSite": "Equipment visible in photos or mentioned in transcript, or 'N/A'",
+  "labourersOnSite": "Number or description of workers if mentioned or visible, or 'N/A'",
   "delaysDueToPoorConditions": "Yes or No, with details if mentioned",
   "workerIllnessSymptoms": "Yes or No",
   "toolboxTalk": "Description of toolbox talk if mentioned, or 'N/A'",
   "subtradesOnsite": "Subtrades mentioned, or 'N/A'",
-  "healthSafetyHazards": "Safety hazards mentioned, or 'N/A'"
+  "healthSafetyHazards": "Safety hazards from transcript AND any safety flags from photos, or 'N/A'"
 }
 
-Use professional construction language. Do not invent information not in the transcript.`;
+Use professional construction language. Do not invent information not supported by the transcript or photos.`;
 }
 
 export interface SafetyReportContent {
@@ -112,8 +129,11 @@ function buildSafetyReportPrompt(params: {
   date: string;
   weather: string;
   temperature: string;
+  photos: PhotoContext[];
 }): string {
-  return `You are a construction site safety inspector for Snyder Construction. Extract information from the supervisor's voice transcript to fill out a monthly Job Operations and Conditions Safety Report (COR-style inspection checklist).
+  const photoSection = buildPhotoSection(params.photos);
+
+  return `You are a construction site safety inspector for Snyder Construction. Extract information from the supervisor's voice transcript AND the attached site photo analysis to fill out a monthly Job Operations and Conditions Safety Report (COR-style inspection checklist).
 
 Job Name: ${params.jobName}
 Job Address: ${params.jobAddress}
@@ -122,15 +142,16 @@ Supervisor: ${params.supervisorName}
 Date: ${params.date}
 Weather: ${params.weather}
 Temperature: ${params.temperature}
+${photoSection}
 
 Transcript:
 "${params.transcript}"
 
-For each of the 15 safety checklist items below, answer based ONLY on what is mentioned in the transcript:
-- Default to "Yes" (adequate/passing) if the topic is not mentioned and there is no indication of a problem.
-- Answer "No" only if the transcript explicitly describes a deficiency, hazard, or problem with that item.
-- Answer "N/A" if the item clearly does not apply to this site (e.g. no cranes/hoists or heavy equipment in use, no welding, no excavation work).
-- If the transcript mentions a Yes/No answer, append a brief detail in parentheses.
+For each of the 15 safety checklist items below, answer using BOTH the transcript and the photo analysis:
+- Default to "Yes" (adequate/passing) if neither source indicates a problem.
+- Answer "No" if the transcript OR a photo safety flag describes a deficiency or hazard with that item — include the source in parentheses e.g. "No (photo: unsecured ladder visible)".
+- Answer "N/A" if the item clearly does not apply to this site.
+- If photos show evidence relevant to an item (e.g. PPE worn, equipment present), mention it.
 
 Respond in JSON format:
 {
@@ -237,6 +258,7 @@ export async function generateSafetyReport(params: {
   projectName: string;
   supervisorName: string;
   date: string;
+  photos?: PhotoContext[];
   jobAddress?: string;
   projectNumber?: string;
   latitude?: number;
@@ -259,6 +281,7 @@ export async function generateSafetyReport(params: {
     date: params.date,
     weather,
     temperature,
+    photos: params.photos || [],
   });
 
   const extracted = await callDeepSeekJSON(prompt);
@@ -291,11 +314,16 @@ export async function generateSafetyReport(params: {
     transcript: params.transcript,
   };
 
-  const rawMarkdown = buildSafetyMarkdown(content);
+  const rawMarkdown = buildSafetyMarkdown(content, params.photos || []);
   return { content, rawMarkdown };
 }
 
-function buildSafetyMarkdown(r: SafetyReportContent): string {
+function buildSafetyMarkdown(r: SafetyReportContent, photos: PhotoContext[] = []): string {
+  const photoSection = photos.length
+    ? `\n---\n## Site Photos (${photos.length})\n${photos.map((p, i) =>
+        `**Photo ${i + 1}:** ${p.description}${p.safetyFlags.length ? `\n- ⚠ Safety: ${p.safetyFlags.join(', ')}` : ''}${p.tags.length ? `\n- Tags: ${p.tags.join(', ')}` : ''}`
+      ).join('\n\n')}\n`
+    : '';
   return `# Snyder Construction — Inspection Report
 **Subject:** B Job Operations and Conditions MONTHLY/SAFETY REP
 
@@ -357,6 +385,7 @@ ${r.weldingCutting}
 ## Question 15 — Steel Erection Adequate?
 ${r.steelErection}
 
+${photoSection}
 ---
 ## Original Transcript
 ${r.transcript}
@@ -368,13 +397,12 @@ export async function generateFieldReport(params: {
   projectName: string;
   supervisorName: string;
   date: string;
-  photoDescriptions?: string[];
+  photos?: PhotoContext[];
   jobAddress?: string;
   projectNumber?: string;
   latitude?: number;
   longitude?: number;
 }): Promise<{ content: SupervisorReportContent; rawMarkdown: string }> {
-  // Fetch weather if coordinates available
   let weather = 'N/A';
   let temperature = 'N/A';
   if (params.latitude && params.longitude) {
@@ -392,7 +420,7 @@ export async function generateFieldReport(params: {
     date: params.date,
     weather,
     temperature,
-    photoDescriptions: params.photoDescriptions || [],
+    photos: params.photos || [],
   });
 
   const extracted = await callDeepSeekJSON(prompt) as Partial<SupervisorReportContent>;
@@ -405,8 +433,8 @@ export async function generateFieldReport(params: {
     date: params.date,
     weather,
     temperature,
-    labourersOnSite: 'N/A',
-    equipmentOnSite: 'N/A',
+    labourersOnSite: (extracted as any).labourersOnSite || 'N/A',
+    equipmentOnSite: (extracted as any).equipmentOnSite || 'N/A',
     supervisorsOnSite: params.supervisorName,
     inspectionsToday: extracted.inspectionsToday || 'None',
     generalNotes: extracted.generalNotes || 'N/A',
@@ -418,11 +446,17 @@ export async function generateFieldReport(params: {
     transcript: params.transcript,
   };
 
-  const rawMarkdown = buildMarkdown(content);
+  const rawMarkdown = buildMarkdown(content, params.photos || []);
   return { content, rawMarkdown };
 }
 
-function buildMarkdown(r: SupervisorReportContent): string {
+function buildMarkdown(r: SupervisorReportContent, photos: PhotoContext[] = []): string {
+  const photoSection = photos.length
+    ? `\n---\n## Site Photos (${photos.length})\n${photos.map((p, i) =>
+        `**Photo ${i + 1}:** ${p.description}${p.safetyFlags.length ? `\n- ⚠ Safety: ${p.safetyFlags.join(', ')}` : ''}${p.tags.length ? `\n- Tags: ${p.tags.join(', ')}` : ''}`
+      ).join('\n\n')}\n`
+    : '';
+
   return `# Snyder Construction — Supervisor's Report
 
 **Job Name:** ${r.jobName}
@@ -460,6 +494,7 @@ ${r.subtradesOnsite}
 ## Question 12 — Health & Safety Specific Hazards Today
 ${r.healthSafetyHazards}
 
+${photoSection}
 ---
 ## Original Transcript
 ${r.transcript}
