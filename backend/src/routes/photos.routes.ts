@@ -79,7 +79,7 @@ router.post('/retry-failed', async (req: Request, res: Response, next: NextFunct
 
     await prisma.photo.updateMany({
       where: { id: { in: failed.map((p) => p.id) } },
-      data: { status: 'PENDING' },
+      data: { status: 'UPLOADED' },
     });
 
     for (const photo of failed) {
