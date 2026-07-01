@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { Sidebar } from './Sidebar';
+import { TopNav } from './TopNav';
+import { ThemeProvider } from './ThemeProvider';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -18,7 +19,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--accent)] border-t-transparent" />
       </div>
     );
   }
@@ -26,13 +27,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 print:block print:h-auto print:overflow-visible">
-      <div className="print:hidden"><Sidebar /></div>
-      <main className="flex-1 overflow-y-auto print:overflow-visible print:h-auto">
-        <div className="mx-auto max-w-7xl p-8">
+    <ThemeProvider>
+      <div className="min-h-screen bg-gray-50">
+        <TopNav />
+        <main className="mx-auto max-w-7xl px-6 py-8 print:px-0 print:py-0">
           {children}
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </ThemeProvider>
   );
 }
