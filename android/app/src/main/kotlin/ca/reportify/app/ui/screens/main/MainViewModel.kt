@@ -154,7 +154,7 @@ class MainViewModel @Inject constructor(
         Timber.d("Sync triggered")
     }
 
-    private fun refreshJobDetection() {
+    fun refreshJobDetection() {
         viewModelScope.launch {
             try {
                 val location = locationProvider.getLastLocation() ?: return@launch

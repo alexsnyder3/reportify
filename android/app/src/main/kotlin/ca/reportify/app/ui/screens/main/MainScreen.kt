@@ -41,6 +41,22 @@ fun MainScreen(
         else viewModel.setError("Microphone permission is required to record")
     }
 
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { perms ->
+        if (perms[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
+            viewModel.refreshJobDetection()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        locationPermissionLauncher.launch(arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+        ))
+    }
+
     val pulseAnim = rememberInfiniteTransition(label = "pulse")
     val pulseScale by pulseAnim.animateFloat(
         initialValue = 1f,
