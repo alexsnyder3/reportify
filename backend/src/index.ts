@@ -29,6 +29,7 @@ import jobRoutes from './routes/jobs.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
 import entryRoutes from './routes/entries.routes.js';
 import reportRoutes from './routes/reports.routes.js';
+import photoRoutes from './routes/photos.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 
 const app = express();
@@ -82,6 +83,7 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/entries', entryRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/photos', photoRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 // ─── Error Handling ──────────────────────────

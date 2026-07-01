@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,31 @@ import { Badge } from '@/components/ui/badge';
 import { formatDateTime, formatDuration, statusColors } from '@/lib/utils';
 import { ArrowLeft, MapPin, Clock, User, Mic, RefreshCw, FileText } from 'lucide-react';
 import Link from 'next/link';
+
+function PhotoThumbnail({ photoId, analysis }: { photoId: string; analysis?: string }) {
+  const { data } = useQuery({
+    queryKey: ['photo-url', photoId],
+    queryFn: async () => { const res = await api.get(`/api/photos/${photoId}/url`); return res.data.data.url as string; },
+    staleTime: 4 * 60 * 1000, // signed URLs last ~1hr, refresh well before
+  });
+
+  return (
+    <div className="group relative aspect-square overflow-hidden rounded-lg bg-gray-100">
+      {data ? (
+        <Image src={data} alt="Site photo" fill className="object-cover" unoptimized />
+      ) : (
+        <div className="flex h-full items-center justify-center">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-[var(--accent)]" />
+        </div>
+      )}
+      {analysis && (
+        <div className="absolute inset-x-0 bottom-0 hidden bg-black/60 p-2 group-hover:block">
+          <p className="text-xs text-white line-clamp-2">{analysis}</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function EntryDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -167,14 +193,7 @@ export default function EntryDetailPage() {
             <h2 className="font-semibold text-gray-900 mb-3">Photos ({entry.photos.length})</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {entry.photos.map((ep: { photo: { id: string; analysis?: { description: string } } }) => (
-                <div key={ep.photo.id} className="group relative aspect-square overflow-hidden rounded-lg bg-gray-100">
-                  <div className="flex h-full items-center justify-center text-xs text-gray-400">Photo</div>
-                  {ep.photo.analysis && (
-                    <div className="absolute inset-x-0 bottom-0 hidden bg-black/60 p-2 group-hover:block">
-                      <p className="text-xs text-white line-clamp-2">{ep.photo.analysis.description}</p>
-                    </div>
-                  )}
-                </div>
+                <PhotoThumbnail key={ep.photo.id} photoId={ep.photo.id} analysis={ep.photo.analysis?.description} />
               ))}
             </div>
           </div>

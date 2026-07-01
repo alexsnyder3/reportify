@@ -4,23 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import ca.reportify.app.ui.screens.camera.CameraScreen
 import ca.reportify.app.ui.screens.login.LoginScreen
 import ca.reportify.app.ui.screens.main.MainScreen
 import ca.reportify.app.ui.screens.queue.QueueScreen
@@ -79,39 +67,10 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // Camera screen placeholder — implement with CameraX in follow-up
                 composable("camera") {
-                    CameraPlaceholderScreen(onBack = { navController.popBackStack() })
+                    CameraScreen(onBack = { navController.popBackStack() })
                 }
             }
-        }
-    }
-}
-
-// Placeholder camera screen — full CameraX implementation in camera branch
-@Composable
-private fun CameraPlaceholderScreen(onBack: () -> Unit) {
-    Scaffold(
-        containerColor = Color.Black,
-        topBar = {
-            IconButton(onClick = onBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White,
-                )
-            }
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                "Camera — tap back to return\nFull CameraX implementation in next release",
-                color = Color.White,
-                textAlign = TextAlign.Center,
-            )
         }
     }
 }
