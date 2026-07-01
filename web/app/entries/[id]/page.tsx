@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDateTime, formatDuration, statusColors } from '@/lib/utils';
-import { ArrowLeft, MapPin, Clock, User, Mic, RefreshCw, FileText } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, User, Mic, RefreshCw, FileText, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 function PhotoThumbnail({ photoId, analysis }: { photoId: string; analysis?: string }) {
@@ -44,6 +44,12 @@ export default function EntryDetailPage() {
   const router = useRouter();
   const [reassigning, setReassigning] = useState(false);
   const [regenMsg, setRegenMsg] = useState('');
+  const [confirmDeleteReport, setConfirmDeleteReport] = useState<string | null>(null);
+
+  const deleteReport = useMutation({
+    mutationFn: (reportId: string) => api.delete(`/api/reports/${reportId}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['entry', id] }); setConfirmDeleteReport(null); },
+  });
 
   const { data: entry, isLoading } = useQuery({
     queryKey: ['entry', id],
@@ -168,21 +174,30 @@ export default function EntryDetailPage() {
         {/* Reports */}
         {entry.reports?.length > 0 && (
           <div className="rounded-xl border border-gray-200 bg-white p-5">
-            <h2 className="font-semibold text-gray-900 mb-3">Generated Reports</h2>
+            <h2 className="font-semibold text-gray-900 mb-3">Generated Reports ({entry.reports.length})</h2>
             <div className="space-y-2">
               {entry.reports.map((re: { report: { id: string; title: string; status: string; type: string } }) => (
-                <Link
-                  key={re.report.id}
-                  href={`/reports/${re.report.id}`}
-                  className="flex items-center gap-3 rounded-lg border border-gray-100 px-4 py-3 hover:bg-gray-50 transition-colors"
-                >
-                  <FileText className={`h-4 w-4 shrink-0 ${re.report.type === 'SAFETY_REPORT' ? 'text-orange-500' : 'text-green-600'}`} />
-                  <span className="flex-1 text-sm font-medium text-gray-900">{re.report.title}</span>
-                  <span className={`text-[10px] font-bold uppercase rounded-full px-2 py-0.5 ${re.report.type === 'SAFETY_REPORT' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
-                    {re.report.type === 'SAFETY_REPORT' ? 'Safety' : 'Supervisor'}
-                  </span>
-                  <Badge className={statusColors[re.report.status]}>{re.report.status}</Badge>
-                </Link>
+                <div key={re.report.id} className="flex items-center gap-2 rounded-lg border border-gray-100 px-4 py-3 hover:bg-gray-50 transition-colors group">
+                  <Link href={`/reports/${re.report.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                    <FileText className={`h-4 w-4 shrink-0 ${re.report.type === 'SAFETY_REPORT' ? 'text-orange-500' : 'text-green-600'}`} />
+                    <span className="flex-1 text-sm font-medium text-gray-900 truncate">{re.report.title}</span>
+                    <span className={`shrink-0 text-[10px] font-bold uppercase rounded-full px-2 py-0.5 ${re.report.type === 'SAFETY_REPORT' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+                      {re.report.type === 'SAFETY_REPORT' ? 'Safety' : 'Supervisor'}
+                    </span>
+                    <Badge className={statusColors[re.report.status]}>{re.report.status}</Badge>
+                  </Link>
+                  {confirmDeleteReport === re.report.id ? (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-xs text-gray-500">Delete?</span>
+                      <button onClick={() => deleteReport.mutate(re.report.id)} disabled={deleteReport.isPending} className="rounded px-2 py-1 text-xs font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50">Yes</button>
+                      <button onClick={() => setConfirmDeleteReport(null)} className="rounded px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">No</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmDeleteReport(re.report.id)} className="shrink-0 opacity-0 group-hover:opacity-100 rounded p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </div>
