@@ -31,7 +31,7 @@ Respond in JSON format only:
 safetyFlags should be an empty array if there are no concerns.`;
 
 export async function analyzePhoto(imageBuffer: Buffer, mimeType = 'image/jpeg', imageUrl?: string): Promise<PhotoAnalysisResult> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY || process.env.WHISPER_API_KEY;
   if (!apiKey) throw new AppError('OpenAI API key not configured', 500);
 
   // Prefer a direct URL (avoids large base64 payloads); fall back to base64
@@ -72,8 +72,8 @@ export async function analyzePhoto(imageBuffer: Buffer, mimeType = 'image/jpeg',
 
   if (!response.ok) {
     const text = await response.text();
-    logger.error('OpenAI vision API error', { status: response.status, text });
-    throw new AppError(`Photo analysis failed: ${response.statusText}`, 502);
+    logger.error('OpenAI vision API error', { status: response.status, body: text.slice(0, 500) });
+    throw new AppError(`Photo analysis failed: ${response.status} ${text.slice(0, 200)}`, 502);
   }
 
   const data = (await response.json()) as {
