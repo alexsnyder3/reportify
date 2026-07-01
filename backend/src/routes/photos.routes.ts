@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authenticate } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { prisma } from '../utils/prisma.js';
+import { PhotoStatus } from '@prisma/client';
 import { getSignedDownloadUrl } from '../services/storage.service.js';
 import { NotFoundError } from '../utils/errors.js';
 import { photoAnalysisQueue, defaultJobOptions } from '../workers/queue.js';
@@ -73,13 +74,13 @@ router.get('/:id/url', async (req: Request, res: Response, next: NextFunction) =
 router.post('/retry-failed', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const failed = await prisma.photo.findMany({
-      where: { organizationId: req.user!.orgId, status: 'FAILED', deletedAt: null, fileKey: { not: null } },
+      where: { organizationId: req.user!.orgId, status: PhotoStatus.FAILED, deletedAt: null, fileKey: { not: null } },
       select: { id: true, fileKey: true, mimeType: true },
     });
 
     await prisma.photo.updateMany({
       where: { id: { in: failed.map((p) => p.id) } },
-      data: { status: 'UPLOADED' },
+      data: { status: PhotoStatus.UPLOADED },
     });
 
     for (const photo of failed) {
