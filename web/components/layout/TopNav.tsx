@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth, useLogout } from '@/lib/hooks/useAuth';
@@ -42,7 +43,7 @@ export function TopNav() {
 
         {/* Logo */}
         <Link href="/jobs" className="flex items-center gap-2.5 shrink-0">
-          <S2SIcon />
+          <Image src="/s2s-logo.png" alt="Site2Site" width={32} height={32} className="rounded-lg" />
           <div className="leading-tight">
             <span className="text-sm font-bold text-gray-900 tracking-tight">Reportify</span>
             <span className="block text-[10px] text-gray-400 font-medium tracking-wider uppercase">by Site2Site</span>
@@ -114,19 +115,5 @@ export function TopNav() {
         </div>
       </div>
     </header>
-  );
-}
-
-function S2SIcon() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-      <rect width="32" height="32" rx="6" fill="#2d2d2d"/>
-      <line x1="0" y1="32" x2="32" y2="0" stroke="#b0b0b0" strokeWidth="7" strokeOpacity="0.4"/>
-      <line x1="-4" y1="24" x2="28" y2="-8" stroke="#c0522a" strokeWidth="6" strokeOpacity="0.85"/>
-      <line x1="4" y1="40" x2="36" y2="8" stroke="#c0522a" strokeWidth="6" strokeOpacity="0.85"/>
-      <text x="3" y="10" fill="white" fontFamily="Arial" fontWeight="bold" fontSize="6.5">SITE</text>
-      <text x="12" y="19" fill="white" fontFamily="Arial" fontWeight="bold" fontSize="8">2</text>
-      <text x="17" y="29" fill="white" fontFamily="Arial" fontWeight="bold" fontSize="6.5">SITE</text>
-    </svg>
   );
 }
